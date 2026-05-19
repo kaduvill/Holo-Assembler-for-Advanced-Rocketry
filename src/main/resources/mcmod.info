@@ -1,0 +1,19 @@
+[
+  {
+    "modid": "holoassemblerar",
+    "name": "Holo-Assembler for Advanced Rocketry",
+    "description": "Adds a Holo-Assembler tool for dynamically building Advanced Rocketry multiblocks from their controllers.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["kaduvill"],
+    "credits": "Advanced Rocketry and LibVulpes by zmaster587. Inspired by the holo-projector workflow.",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": [
+      "required-after:libvulpes",
+      "required-after:advancedrocketry"
+    ]
+  }
+]

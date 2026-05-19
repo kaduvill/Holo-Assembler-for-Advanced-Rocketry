@@ -1,0 +1,138 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'eclipse'
+    id 'org.jetbrains.gradle.plugin.idea-ext' version '1.3'
+    id 'com.gtnewhorizons.retrofuturagradle' version '2.0.2'
+}
+
+group = 'com.kaduvill.holoassemblerar'
+version = '1.12.2-0.1.0'
+
+if (System.getenv('BUILD_NUMBER') != null) {
+    version = "${version}.${System.getenv('BUILD_NUMBER')}"
+}
+
+base {
+    archivesName.set('HoloAssemblerAR')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+    options.release.set(8)
+
+    javaCompiler.set(javaToolchains.compilerFor {
+        languageVersion.set(JavaLanguageVersion.of(17))
+        vendor.set(JvmVendorSpec.AZUL)
+    })
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+        vendor = JvmVendorSpec.AZUL
+    }
+
+    withSourcesJar()
+}
+minecraft {
+    mcVersion.set('1.12.2')
+
+    mcpMappingChannel.set('snapshot')
+    mcpMappingVersion.set('20180616')
+
+    useDependencyAccessTransformers.set(true)
+    username.set('Developer')
+
+    extraRunJvmArguments.add("-ea:${project.group}")
+
+    tagReplacementFiles.add('HoloAssemblerAR.java')
+    injectedTags.put('GRADLETOKEN_VERSION', project.version.toString())
+}
+
+repositories {
+    mavenCentral()
+
+    maven {
+        name = 'Curse Maven'
+        url = uri('https://cursemaven.com')
+    }
+
+    maven {
+        name = 'CleanroomMC'
+        url = uri('https://maven.cleanroommc.com')
+    }
+
+    maven {
+        name = 'GTNH Maven'
+        url = uri('https://nexus.gtnewhorizons.com/repository/public/')
+    }
+
+    maven {
+        name = 'Sponge'
+        url = uri('https://repo.spongepowered.org/maven')
+    }
+
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+dependencies {
+    // Put matching dev/deobf jars from your AR fork and LibVulpes in /libs.
+    // These names are suggestions; change them if your jar names differ.
+    compileOnly rfg.deobf(files('libs/advancedrocketry-2.2.9-dev.jar'))
+    compileOnly rfg.deobf(files('libs/libvulpes-0.5.3-dev.jar'))
+
+    runtimeOnly rfg.deobf(files('libs/advancedrocketry-2.2.9-dev.jar'))
+    runtimeOnly rfg.deobf(files('libs/libvulpes-0.5.3-dev.jar'))
+
+    runtimeOnly rfg.deobf('curse.maven:jei-238222:3040523')
+
+    // V2 later:
+    // compileOnly rfg.deobf('curse.maven:applied-energistics-2-223794:<fileId>')
+    // compileOnly rfg.deobf('curse.maven:projecte-226410:<fileId>')
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'mcversion', minecraft.mcVersion.get()
+
+    filesMatching('mcmod.info') { fcd ->
+        fcd.expand(
+                'version': project.version,
+                'mcversion': minecraft.mcVersion.get()
+        )
+    }
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'    : 'Holo-Assembler for Advanced Rocketry',
+                'Specification-Vendor'   : 'kaduvill',
+                'Specification-Version'  : '1',
+                'Implementation-Title'   : project.name,
+                'Implementation-Version' : project.version,
+                'Implementation-Vendor'  : 'kaduvill'
+        ])
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+        inheritOutputDirs = true
+    }
+}
