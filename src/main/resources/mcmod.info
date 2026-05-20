@@ -13,7 +13,8 @@
     "screenshots": [],
     "dependencies": [
       "required-after:libvulpes",
-      "required-after:advancedrocketry"
+      "required-after:advancedrocketry",
+      "after:projecte"
     ]
   }
 ]

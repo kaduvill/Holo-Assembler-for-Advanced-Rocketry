@@ -22,6 +22,7 @@ import net.minecraft.util.math.BlockPos;
 import zmaster587.libVulpes.block.BlockMeta;
 import zmaster587.libVulpes.block.multiblock.BlockMultiblockMachine;
 import zmaster587.libVulpes.tile.multiblock.TileMultiBlock;
+import com.kaduvill.holoassemblerar.compat.ProjectECompat;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -84,6 +85,7 @@ public class ItemHoloAssembler extends Item {
         int alreadyValid = 0;
         int ignored = 0;
         int placed = 0;
+        int emcPlaced = 0;
         int missingItems = 0;
 
         boolean assemble = isAssembleMode(heldStack);
@@ -132,6 +134,13 @@ public class ItemHoloAssembler extends Item {
                     if (assemble) {
                         if (placeFromInventory(world, targetPos, allowed, player)) {
                             placed++;
+                        } else if (ProjectECompat.tryPlaceFromEMC(
+                                player,
+                                allowed,
+                                (block, meta) -> placeBlock(world, targetPos, block, meta, player)
+                        )) {
+                            placed++;
+                            emcPlaced++;
                         } else {
                             missingItems++;
                         }
@@ -142,6 +151,7 @@ public class ItemHoloAssembler extends Item {
 
         if (assemble) {
             send(player, "Assembly: placed=" + placed
+                    + ", EMC placed=" + emcPlaced
                     + ", missing items=" + missingItems
                     + ", blocked=" + blocked
                     + ", already valid=" + alreadyValid + ".");

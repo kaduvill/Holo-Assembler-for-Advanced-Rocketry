@@ -15,6 +15,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.logging.log4j.Logger;
+import com.kaduvill.holoassemblerar.config.HoloAssemblerConfig;
 
 @Mod(
         modid = HoloAssemblerAR.MOD_ID,
@@ -32,7 +33,8 @@ public class HoloAssemblerAR {
 
     public static final String DEPENDENCIES =
             "required-after:libvulpes;" +
-                    "required-after:advancedrocketry";
+                    "required-after:advancedrocketry;" +
+                    "after:projecte";
 
     public static final ItemHoloAssembler HOLO_ASSEMBLER = new ItemHoloAssembler();
 
@@ -51,8 +53,8 @@ public class HoloAssemblerAR {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         logger = event.getModLog();
+        HoloAssemblerConfig.load(event.getSuggestedConfigurationFile());
         logger.info("{} loaded", MOD_NAME);
-        logger.info("Source: {}", event.getSourceFile());
     }
 
     @SubscribeEvent
