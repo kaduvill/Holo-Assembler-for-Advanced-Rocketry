@@ -34,7 +34,8 @@ public class HoloAssemblerAR {
     public static final String DEPENDENCIES =
             "required-after:libvulpes;" +
                     "required-after:advancedrocketry;" +
-                    "after:projecte";
+                    "after:projecte;" +
+                    "after:appliedenergistics2";
 
     public static final ItemHoloAssembler HOLO_ASSEMBLER = new ItemHoloAssembler();
 

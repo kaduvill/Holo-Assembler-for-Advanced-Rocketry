@@ -1,5 +1,6 @@
 package com.kaduvill.holoassemblerar.item;
 
+import com.kaduvill.holoassemblerar.compat.AE2Compat;
 import com.kaduvill.holoassemblerar.compat.ProjectECompat;
 import com.kaduvill.holoassemblerar.config.HoloAssemblerConfig;
 import io.netty.buffer.ByteBuf;
@@ -25,7 +26,6 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import zmaster587.libVulpes.LibVulpes;
@@ -337,6 +337,12 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
 
         TileEntity tile = world.getTileEntity(controllerPos);
 
+        if (AE2Compat.tryLink(heldStack, world, controllerPos)) {
+            setUseMe(heldStack, true);
+            send(player, "Linked to ME network at " + AE2Compat.getLinkText(heldStack) + ".");
+            return EnumActionResult.SUCCESS;
+        }
+
         if (!(tile instanceof TileMultiBlock)) {
             return EnumActionResult.PASS;
         }
@@ -363,6 +369,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         int alreadyValid = 0;
         int ignored = 0;
         int placed = 0;
+        int mePlaced = 0;
         int emcPlaced = 0;
         int missingItems = 0;
 
@@ -436,6 +443,14 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                     )) {
                         placed++;
                         emcPlaced++;
+                    } else if (useMe(heldStack) && isMeAvailable() && AE2Compat.tryPlaceFromME(
+                            heldStack,
+                            player,
+                            allowed,
+                            (block, meta) -> placeBlock(world, targetPos, block, meta, player)
+                    )) {
+                        placed++;
+                        mePlaced++;
                     } else {
                         missingItems++;
                         addCouldNotPlace(couldNotPlace, allowed);
@@ -448,11 +463,13 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             send(player, "Structure complete. All required blocks are already correct.");
         } else if (couldNotPlace.isEmpty()) {
             send(player, "Assembly complete. Placed=" + placed
+                    + formatMePart(mePlaced)
                     + formatEmcPart(emcPlaced)
                     + ". All required blocks are now correct.");
         } else {
             send(player, "Could not place: " + formatCouldNotPlace(couldNotPlace)
                     + ". Placed=" + placed
+                    + formatMePart(mePlaced)
                     + formatEmcPart(emcPlaced)
                     + ", blocked=" + blocked
                     + ", missing sources=" + missingItems + ".");
@@ -747,6 +764,10 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         return emcPlaced > 0 ? ", EMC placed=" + emcPlaced : "";
     }
 
+    private static String formatMePart(int mePlaced) {
+        return mePlaced > 0 ? ", ME placed=" + mePlaced : "";
+    }
+
     private static void send(EntityPlayer player, String message) {
         player.sendMessage(new TextComponentString("[Holo-Assembler] " + message));
     }
@@ -804,11 +825,11 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
     }
 
     private static boolean isEmcAvailable() {
-        return HoloAssemblerConfig.enableEmcCompat && Loader.isModLoaded("projecte");
+        return ProjectECompat.isEnabled();
     }
 
     private static boolean isMeAvailable() {
-        return HoloAssemblerConfig.enableMeCompat && Loader.isModLoaded("appliedenergistics2");
+        return AE2Compat.isEnabled();
     }
 
     @Override
@@ -865,6 +886,9 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                 + (useInventory(stack) ? "Inventory " : "")
                 + (useEmc(stack) && isEmcAvailable() ? "EMC " : "")
                 + (useMe(stack) && isMeAvailable() ? "ME " : ""));
+        if (isMeAvailable()) {
+            tooltip.add("ME Link: " + AE2Compat.getLinkText(stack));
+        }
         tooltip.add(I18n.format("item.holoassemblerar.holo_assembler.tooltip"));
         tooltip.add("Right-click controller to assemble.");
         tooltip.add("Sneak-right-click to open settings.");

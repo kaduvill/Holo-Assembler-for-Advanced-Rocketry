@@ -14,7 +14,8 @@
     "dependencies": [
       "required-after:libvulpes",
       "required-after:advancedrocketry",
-      "after:projecte"
+      "after:projecte",
+      "after:appliedenergistics2"
     ]
   }
 ]

@@ -87,7 +87,7 @@ dependencies {
     compileOnly rfg.deobf(files('libs/libvulpes-0.5.3-dev.jar'))
     // Compats
     compileOnly rfg.deobf('curse.maven:projecte-226410:2702991')
-
+    compileOnly rfg.deobf('curse.maven:ae2-extended-life-570458:5411078')
 
     // Dev Env
     runtimeOnly rfg.deobf(files('libs/advancedrocketry-2.2.9-dev.jar'))
@@ -95,7 +95,7 @@ dependencies {
 
     runtimeOnly rfg.deobf('curse.maven:jei-238222:3040523')
     //runtimeOnly rfg.deobf('curse.maven:projecte-226410:2702991')
-
+    runtimeOnly rfg.deobf('curse.maven:ae2-extended-life-570458:5411078')
 }
 
 processResources {

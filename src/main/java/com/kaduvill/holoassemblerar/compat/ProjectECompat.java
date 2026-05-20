@@ -17,6 +17,10 @@ public final class ProjectECompat {
     private ProjectECompat() {
     }
 
+    public static boolean isEnabled() {
+        return HoloAssemblerConfig.enableEmcCompat && Loader.isModLoaded(PROJECTE_MODID);
+    }
+
     public interface BlockPlacer {
         boolean place(Block block, int meta);
     }
@@ -24,11 +28,7 @@ public final class ProjectECompat {
     public static boolean tryPlaceFromEMC(EntityPlayer player,
                                           List<BlockMeta> allowed,
                                           BlockPlacer placer) {
-        if (!HoloAssemblerConfig.enableEmcCompat) {
-            return false;
-        }
-
-        if (!Loader.isModLoaded(PROJECTE_MODID)) {
+        if (!isEnabled()) {
             return false;
         }
 
