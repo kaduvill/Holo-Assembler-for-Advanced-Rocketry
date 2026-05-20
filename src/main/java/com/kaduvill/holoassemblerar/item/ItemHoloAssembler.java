@@ -1,6 +1,7 @@
 package com.kaduvill.holoassemblerar.item;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.client.resources.I18n;
@@ -24,8 +25,6 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class ItemHoloAssembler extends Item {
-
-    private static final int MAX_BLOCKS_PER_USE = 64;
 
     public ItemHoloAssembler() {
         setMaxStackSize(1);
@@ -112,16 +111,14 @@ public class ItemHoloAssembler extends Item {
                         continue;
                     }
 
-                    IBlockState existing = world.getBlockState(targetPos);
-
-                    if (!world.isAirBlock(targetPos) && !existing.getBlock().isReplaceable(world, targetPos)) {
+                    if (!canReplaceForAssembly(world, targetPos)) {
                         blocked++;
                         continue;
                     }
 
                     missing++;
 
-                    if (assemble && placed < MAX_BLOCKS_PER_USE) {
+                    if (assemble) {
                         if (placeFromInventory(world, targetPos, allowed, player)) {
                             placed++;
                         } else {
@@ -147,6 +144,33 @@ public class ItemHoloAssembler extends Item {
         return EnumActionResult.SUCCESS;
     }
 
+    private static boolean canReplaceForAssembly(World world, BlockPos pos) {
+        IBlockState state = world.getBlockState(pos);
+        Block block = state.getBlock();
+
+        if (world.isAirBlock(pos)) {
+            return true;
+        }
+
+        if (state.getMaterial().isLiquid()) {
+            return isFlowingLiquid(state, block);
+        }
+
+        return block.isReplaceable(world, pos);
+    }
+
+    private static boolean isFlowingLiquid(IBlockState state, Block block) {
+        if (!state.getMaterial().isLiquid()) {
+            return false;
+        }
+
+        if (block instanceof BlockLiquid && state.getProperties().containsKey(BlockLiquid.LEVEL)) {
+            return state.getValue(BlockLiquid.LEVEL) > 0;
+        }
+
+        return block.getMetaFromState(state) > 0;
+    }
+
     private static boolean placeFromInventory(World world,
                                               BlockPos pos,
                                               List<BlockMeta> allowed,
@@ -157,56 +181,69 @@ public class ItemHoloAssembler extends Item {
             }
 
             Block block = blockMeta.getBlock();
-
             if (block == null || block == Blocks.AIR) {
                 continue;
             }
 
             int wantedMeta = blockMeta.getMeta();
-            int slot = findInventorySlot(player, block, wantedMeta);
 
+            if (player.capabilities.isCreativeMode) {
+                int creativeMeta = isWildcardMeta(wantedMeta) ? 0 : wantedMeta;
+
+                if (placeBlock(world, pos, block, creativeMeta, player)) {
+                    return true;
+                }
+                continue;
+            }
+
+            int slot = findInventorySlot(player, block, wantedMeta);
             if (slot < 0) {
                 continue;
             }
 
             ItemStack stack = player.inventory.getStackInSlot(slot);
-
             if (stack.isEmpty()) {
                 continue;
             }
 
             int metaToPlace = isWildcardMeta(wantedMeta) ? stack.getMetadata() : wantedMeta;
 
-            IBlockState state;
-
-            try {
-                state = block.getStateFromMeta(metaToPlace);
-            } catch (Exception ignored) {
-                state = block.getDefaultState();
-            }
-
-            if (!world.mayPlace(block, pos, false, EnumFacing.UP, player)) {
+            if (!placeBlock(world, pos, block, metaToPlace, player)) {
                 continue;
             }
 
-            if (!world.setBlockState(pos, state, 3)) {
-                continue;
+            stack.shrink(1);
+
+            if (stack.getCount() <= 0) {
+                player.inventory.setInventorySlotContents(slot, ItemStack.EMPTY);
             }
 
-            if (!player.capabilities.isCreativeMode) {
-                stack.shrink(1);
-
-                if (stack.getCount() <= 0) {
-                    player.inventory.setInventorySlotContents(slot, ItemStack.EMPTY);
-                }
-
-                player.inventory.markDirty();
-            }
+            player.inventory.markDirty();
 
             return true;
         }
 
         return false;
+    }
+
+    private static boolean placeBlock(World world,
+                                      BlockPos pos,
+                                      Block block,
+                                      int meta,
+                                      EntityPlayer player) {
+        IBlockState state;
+
+        try {
+            state = block.getStateFromMeta(meta);
+        } catch (Exception ignored) {
+            state = block.getDefaultState();
+        }
+
+        if (!canReplaceForAssembly(world, pos)) {
+            return false;
+        }
+
+        return world.setBlockState(pos, state, 3);
     }
 
     private static int findInventorySlot(EntityPlayer player, Block block, int wantedMeta) {
@@ -302,6 +339,8 @@ public class ItemHoloAssembler extends Item {
 
         return false;
     }
+
+
 
     private static boolean isAirRequirement(List<BlockMeta> allowed) {
         for (BlockMeta blockMeta : allowed) {
