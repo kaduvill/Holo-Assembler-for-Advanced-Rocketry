@@ -1,0 +1,6 @@
+item.holoassemblerar.holo_assembler.name=全息组装器
+item.holoassemblerar.holo_assembler.tooltip=根据控制器构建高级火箭的多方块结构。
+item.holoassemblerar.holo_assembler.tooltip.sneak=潜行右键点击高级火箭多方块结构的控制器，以组装缺失的方块。
+item.holoassemblerar.holo_assembler.tooltip.preview=右键点击高级火箭多方块结构的控制器，以预览缺失的方块。
+
+itemGroup.holoassemblerar=全息组装器（高级火箭）
