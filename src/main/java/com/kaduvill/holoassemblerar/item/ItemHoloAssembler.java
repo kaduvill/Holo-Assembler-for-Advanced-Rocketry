@@ -10,7 +10,9 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -40,6 +42,16 @@ public class ItemHoloAssembler extends Item {
                                       float hitX,
                                       float hitY,
                                       float hitZ) {
+        ItemStack heldStack = player.getHeldItem(hand);
+
+        if (player.isSneaking()) {
+            if (!world.isRemote) {
+                cycleMode(heldStack, player);
+            }
+
+            return EnumActionResult.SUCCESS;
+        }
+
         if (world.isRemote) {
             return EnumActionResult.SUCCESS;
         }
@@ -47,8 +59,7 @@ public class ItemHoloAssembler extends Item {
         TileEntity tile = world.getTileEntity(controllerPos);
 
         if (!(tile instanceof TileMultiBlock)) {
-            send(player, "Not an Advanced Rocketry multiblock controller.");
-            return EnumActionResult.FAIL;
+            return EnumActionResult.PASS;
         }
 
         TileMultiBlock multiblock = (TileMultiBlock) tile;
@@ -75,7 +86,7 @@ public class ItemHoloAssembler extends Item {
         int placed = 0;
         int missingItems = 0;
 
-        boolean assemble = player.isSneaking();
+        boolean assemble = isAssembleMode(heldStack);
 
         for (int y = 0; y < structure.length; y++) {
             for (int z = 0; z < structure[0].length; z++) {
@@ -142,6 +153,39 @@ public class ItemHoloAssembler extends Item {
         }
 
         return EnumActionResult.SUCCESS;
+    }
+
+    private static boolean isAssembleMode(ItemStack stack) {
+        NBTTagCompound tag = stack.getTagCompound();
+
+        if (tag == null || !tag.hasKey("Mode")) {
+            return true; // Default mode: Assemble
+        }
+
+        return "assemble".equals(tag.getString("Mode"));
+    }
+
+    private static void cycleMode(ItemStack stack, EntityPlayer player) {
+        NBTTagCompound tag = stack.getTagCompound();
+
+        if (tag == null) {
+            tag = new NBTTagCompound();
+            stack.setTagCompound(tag);
+        }
+
+        boolean currentlyAssemble = isAssembleMode(stack);
+
+        if (currentlyAssemble) {
+            tag.setString("Mode", "preview");
+            send(player, "Mode set to: Preview.");
+        } else {
+            tag.setString("Mode", "assemble");
+            send(player, "Mode set to: Assemble.");
+        }
+    }
+
+    private static String getModeName(ItemStack stack) {
+        return isAssembleMode(stack) ? "Assemble" : "Preview";
     }
 
     private static boolean canReplaceForAssembly(World world, BlockPos pos) {
@@ -356,6 +400,23 @@ public class ItemHoloAssembler extends Item {
         return true;
     }
 
+    @Override
+    public ActionResult<ItemStack> onItemRightClick(World world,
+                                                    EntityPlayer player,
+                                                    EnumHand hand) {
+        ItemStack stack = player.getHeldItem(hand);
+
+        if (!player.isSneaking()) {
+            return new ActionResult<>(EnumActionResult.PASS, stack);
+        }
+
+        if (!world.isRemote) {
+            cycleMode(stack, player);
+        }
+
+        return new ActionResult<>(EnumActionResult.SUCCESS, stack);
+    }
+
     private static boolean isWildcardMeta(int meta) {
         return meta == Short.MAX_VALUE || meta == 32767 || meta == -1;
     }
@@ -369,8 +430,9 @@ public class ItemHoloAssembler extends Item {
                                @Nullable World world,
                                List<String> tooltip,
                                ITooltipFlag flag) {
+        tooltip.add("Mode: " + getModeName(stack));
         tooltip.add(I18n.format("item.holoassemblerar.holo_assembler.tooltip"));
-        tooltip.add(I18n.format("item.holoassemblerar.holo_assembler.tooltip.preview"));
-        tooltip.add(I18n.format("item.holoassemblerar.holo_assembler.tooltip.sneak"));
+        tooltip.add("Right-click an Advanced Rocketry multiblock controller to use current mode.");
+        tooltip.add("Sneak-right-click to cycle Preview / Assemble.");
     }
 }
