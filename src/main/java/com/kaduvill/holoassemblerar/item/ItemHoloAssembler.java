@@ -120,7 +120,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             panelModules.add(makeToggleButton(BTN_DEBUG, BUTTON_X, y, isDebugEnabled(stack), "Debug", isClient));
         }
 
-        modules.add(new ModuleContainerPan(
+        modules.add(new ModuleStaticStarryPanel(
                 PANEL_X,
                 PANEL_Y,
                 panelModules,
@@ -891,6 +891,36 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             } else {
                 setDebugEnabled(stack, false);
             }
+        }
+    }
+
+    private static class ModuleStaticStarryPanel extends ModuleContainerPan {
+
+        public ModuleStaticStarryPanel(int offsetX,
+                                       int offsetY,
+                                       List<ModuleBase> moduleList,
+                                       List<ModuleBase> staticModules,
+                                       net.minecraft.util.ResourceLocation backdrop,
+                                       int screenSizeX,
+                                       int screenSizeY,
+                                       int paddingX,
+                                       int paddingY) {
+            super(offsetX, offsetY, moduleList, staticModules, backdrop, screenSizeX, screenSizeY, paddingX, paddingY);
+        }
+
+        @Override
+        public void onScroll(int dwheel) {
+            // Disabled: keep starry background and contents fixed.
+        }
+
+        @Override
+        protected void moveContainerInterior(int deltaX, int deltaY) {
+            // Disabled: prevent dragging/panning from moving contents.
+        }
+
+        @Override
+        public void onMouseClickedAndDragged(int x, int y, int button, long timeSinceLastClick) {
+            // Disabled: prevent mouse-drag panning.
         }
     }
 
