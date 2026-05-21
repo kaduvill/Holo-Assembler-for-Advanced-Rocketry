@@ -10,12 +10,14 @@ import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.logging.log4j.Logger;
 import com.kaduvill.holoassemblerar.config.HoloAssemblerConfig;
+import com.kaduvill.holoassemblerar.compat.AE2Compat;
 
 @Mod(
         modid = HoloAssemblerAR.MOD_ID,
@@ -63,6 +65,11 @@ public class HoloAssemblerAR {
         HOLO_ASSEMBLER.setRegistryName(new ResourceLocation(MOD_ID, "holo_assembler"));
         HOLO_ASSEMBLER.setCreativeTab(TAB);
         event.getRegistry().register(HOLO_ASSEMBLER);
+    }
+
+    @Mod.EventHandler
+    public void init(FMLInitializationEvent event) {
+        AE2Compat.registerWirelessHandler();
     }
 
     @SideOnly(Side.CLIENT)

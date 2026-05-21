@@ -7,14 +7,14 @@ plugins {
 }
 
 group = 'com.kaduvill.holoassemblerar'
-version = '1.12.2-0.1.0'
+version = '1.12.2-0.3.0'
 
 if (System.getenv('BUILD_NUMBER') != null) {
     version = "${version}.${System.getenv('BUILD_NUMBER')}"
 }
 
 base {
-    archivesName.set('HoloAssemblerAR')
+    archivesName.set('advancedrocketry-holoassembler')
 }
 
 tasks.withType(JavaCompile).configureEach {

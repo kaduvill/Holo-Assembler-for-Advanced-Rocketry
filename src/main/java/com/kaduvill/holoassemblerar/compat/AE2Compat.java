@@ -5,10 +5,6 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.fml.common.Loader;
 import zmaster587.libVulpes.block.BlockMeta;
 
@@ -19,13 +15,10 @@ public final class AE2Compat {
 
     private static final String AE2_MODID = "appliedenergistics2";
 
-    private static final String NBT_ME_LINKED = "MeLinked";
-    private static final String NBT_ME_DIM = "MeDim";
-    private static final String NBT_ME_X = "MeX";
-    private static final String NBT_ME_Y = "MeY";
-    private static final String NBT_ME_Z = "MeZ";
+    private static final String NBT_ENCRYPTION_KEY = "encryptionKey";
+    private static final String NBT_NAME = "name";
 
-    private static Method canLinkMethod;
+    private static Method registerWirelessHandlerMethod;
     private static Method tryPlaceFromMeMethod;
 
     private AE2Compat() {
@@ -39,33 +32,19 @@ public final class AE2Compat {
         return HoloAssemblerConfig.enableMeCompat && Loader.isModLoaded(AE2_MODID);
     }
 
-    public static boolean tryLink(ItemStack stack, World world, BlockPos pos) {
-        if (!isEnabled() || world == null || world.isRemote) {
-            return false;
+    public static void registerWirelessHandler() {
+        if (!isEnabled()) {
+            return;
         }
 
         try {
-            if (canLinkMethod == null) {
+            if (registerWirelessHandlerMethod == null) {
                 Class<?> hooksClass = Class.forName("com.kaduvill.holoassemblerar.compat.AE2CompatHooks");
-                canLinkMethod = hooksClass.getMethod("canLink", World.class, BlockPos.class);
+                registerWirelessHandlerMethod = hooksClass.getMethod("registerWirelessHandler");
             }
 
-            boolean canLink = (Boolean) canLinkMethod.invoke(null, world, pos);
-
-            if (!canLink) {
-                return false;
-            }
-
-            NBTTagCompound tag = getOrCreateTag(stack);
-            tag.setBoolean(NBT_ME_LINKED, true);
-            tag.setInteger(NBT_ME_DIM, world.provider.getDimension());
-            tag.setInteger(NBT_ME_X, pos.getX());
-            tag.setInteger(NBT_ME_Y, pos.getY());
-            tag.setInteger(NBT_ME_Z, pos.getZ());
-
-            return true;
+            registerWirelessHandlerMethod.invoke(null);
         } catch (Throwable ignored) {
-            return false;
         }
     }
 
@@ -77,39 +56,19 @@ public final class AE2Compat {
             return false;
         }
 
-        NBTTagCompound tag = stack.getTagCompound();
-
-        if (tag == null) {
-            return false;
-        }
-
-        int dim = tag.getInteger(NBT_ME_DIM);
-        WorldServer linkedWorld = DimensionManager.getWorld(dim);
-
-        if (linkedWorld == null) {
-            return false;
-        }
-
-        BlockPos linkPos = new BlockPos(
-                tag.getInteger(NBT_ME_X),
-                tag.getInteger(NBT_ME_Y),
-                tag.getInteger(NBT_ME_Z)
-        );
-
         try {
             if (tryPlaceFromMeMethod == null) {
                 Class<?> hooksClass = Class.forName("com.kaduvill.holoassemblerar.compat.AE2CompatHooks");
                 tryPlaceFromMeMethod = hooksClass.getMethod(
                         "tryPlaceFromME",
-                        World.class,
-                        BlockPos.class,
+                        ItemStack.class,
                         EntityPlayer.class,
                         List.class,
                         BlockPlacer.class
                 );
             }
 
-            return (Boolean) tryPlaceFromMeMethod.invoke(null, linkedWorld, linkPos, player, allowed, placer);
+            return (Boolean) tryPlaceFromMeMethod.invoke(null, stack, player, allowed, placer);
         } catch (Throwable ignored) {
             return false;
         }
@@ -117,37 +76,22 @@ public final class AE2Compat {
 
     public static boolean hasLink(ItemStack stack) {
         NBTTagCompound tag = stack.getTagCompound();
-        return tag != null && tag.getBoolean(NBT_ME_LINKED);
+        return tag != null && !tag.getString(NBT_ENCRYPTION_KEY).isEmpty();
     }
 
     public static String getLinkText(ItemStack stack) {
-        if (!hasLink(stack)) {
+        NBTTagCompound tag = stack.getTagCompound();
+
+        if (tag == null || tag.getString(NBT_ENCRYPTION_KEY).isEmpty()) {
             return "Not linked";
         }
 
-        NBTTagCompound tag = stack.getTagCompound();
+        String name = tag.getString(NBT_NAME);
 
-        if (tag == null) {
-            return "Not linked";
+        if (name == null || name.isEmpty()) {
+            return "Linked";
         }
 
-        return "dim " + tag.getInteger(NBT_ME_DIM)
-                + " @ "
-                + tag.getInteger(NBT_ME_X)
-                + ", "
-                + tag.getInteger(NBT_ME_Y)
-                + ", "
-                + tag.getInteger(NBT_ME_Z);
-    }
-
-    private static NBTTagCompound getOrCreateTag(ItemStack stack) {
-        NBTTagCompound tag = stack.getTagCompound();
-
-        if (tag == null) {
-            tag = new NBTTagCompound();
-            stack.setTagCompound(tag);
-        }
-
-        return tag;
+        return name;
     }
 }

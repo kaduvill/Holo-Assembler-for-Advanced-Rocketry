@@ -337,12 +337,6 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
 
         TileEntity tile = world.getTileEntity(controllerPos);
 
-        if (AE2Compat.tryLink(heldStack, world, controllerPos)) {
-            setUseMe(heldStack, true);
-            send(player, "Linked to ME network at " + AE2Compat.getLinkText(heldStack) + ".");
-            return EnumActionResult.SUCCESS;
-        }
-
         if (!(tile instanceof TileMultiBlock)) {
             return EnumActionResult.PASS;
         }
@@ -877,15 +871,27 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         }
     }
 
+    private static String getSourcePriorityText(ItemStack stack) {
+        StringJoiner joiner = new StringJoiner(" > ");
+        if (useInventory(stack)) {
+            joiner.add("Inventory");
+        }
+        if (useEmc(stack) && isEmcAvailable()) {
+            joiner.add("EMC");
+        }
+        if (useMe(stack) && isMeAvailable()) {
+            joiner.add("ME");
+        }
+        String text = joiner.toString();
+        return text.isEmpty() ? "None" : text;
+    }
+
     @Override
     public void addInformation(ItemStack stack,
                                @Nullable World world,
                                List<String> tooltip,
                                ITooltipFlag flag) {
-        tooltip.add("Sources: "
-                + (useInventory(stack) ? "Inventory " : "")
-                + (useEmc(stack) && isEmcAvailable() ? "EMC " : "")
-                + (useMe(stack) && isMeAvailable() ? "ME " : ""));
+        tooltip.add("Sources: " + getSourcePriorityText(stack));
         if (isMeAvailable()) {
             tooltip.add("ME Link: " + AE2Compat.getLinkText(stack));
         }
