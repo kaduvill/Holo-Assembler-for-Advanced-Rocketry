@@ -1,6 +1,5 @@
 item.holoassemblerar.holo_assembler.name=Holo-Assembler
 item.holoassemblerar.holo_assembler.tooltip=Builds Advanced Rocketry multiblocks from their controllers.
 item.holoassemblerar.holo_assembler.tooltip.sneak=Sneak-right-click an Advanced Rocketry multiblock controller to assemble missing blocks.
-item.holoassemblerar.holo_assembler.tooltip.preview=Right-click an Advanced Rocketry multiblock controller to preview missing blocks.
 
 itemGroup.holoassemblerar=Holo-Assembler AR

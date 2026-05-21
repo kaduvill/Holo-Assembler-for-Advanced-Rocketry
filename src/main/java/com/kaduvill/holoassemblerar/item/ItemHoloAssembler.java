@@ -371,6 +371,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         boolean useInventorySource = useInventory(heldStack);
         boolean useEmcSource = useEmc(heldStack) && isEmcAvailable();
         boolean useMeSource = useMe(heldStack) && isMeAvailable();
+        boolean debugOutput = HoloAssemblerConfig.enableDebugMode && isDebugEnabled(heldStack);
 
         for (int y = 0; y < structure.length; y++) {
             for (int z = 0; z < structure[0].length; z++) {
@@ -456,21 +457,37 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         }
 
         if (missing == 0) {
-            send(player, "Structure complete. All required blocks are already correct.");
+            if (debugOutput) {
+                send(player, "Structure complete. All required blocks are already correct."
+                        + " Already valid=" + alreadyValid
+                        + ", ignored=" + ignored
+                        + ", active sources=" + formatActiveSources(useInventorySource, useEmcSource, useMeSource)
+                        + ".");
+            } else {
+                send(player, "Structure complete. All required blocks are already correct.");
+            }
         } else if (couldNotPlace.isEmpty()) {
-            send(player, "Assembly complete. Placed=" + placed
-                    + formatSourcePlacedPart("EMC", emcPlaced, useEmcSource)
-                    + formatSourcePlacedPart("ME", mePlaced, useMeSource)
-                    + ". All required blocks are now correct.");
+            if (debugOutput) {
+                send(player, "Assembly complete. Placed=" + placed
+                        + formatSourcePlacedPart("EMC", emcPlaced, useEmcSource)
+                        + formatSourcePlacedPart("ME", mePlaced, useMeSource)
+                        + ". All required blocks are now correct.");
+            } else {
+                send(player, "Assembly complete. All required blocks are now correct.");
+            }
         } else {
-            send(player, "Could not place: " + formatCouldNotPlace(couldNotPlace)
-                    + ". Placed=" + placed
-                    + formatSourcePlacedPart("EMC", emcPlaced, useEmcSource)
-                    + formatSourcePlacedPart("ME", mePlaced, useMeSource)
-                    + ", blocked=" + blocked
-                    + ", missing sources=" + missingItems
-                    + ", active sources=" + formatActiveSources(useInventorySource, useEmcSource, useMeSource)
-                    + ".");
+            if (debugOutput) {
+                send(player, "Could not place: " + formatCouldNotPlace(couldNotPlace)
+                        + ". Placed=" + placed
+                        + formatSourcePlacedPart("EMC", emcPlaced, useEmcSource)
+                        + formatSourcePlacedPart("ME", mePlaced, useMeSource)
+                        + ", blocked=" + blocked
+                        + ", missing sources=" + missingItems
+                        + ", active sources=" + formatActiveSources(useInventorySource, useEmcSource, useMeSource)
+                        + ".");
+            } else {
+                send(player, "Could not place: " + formatCouldNotPlace(couldNotPlace) + ".");
+            }
         }
 
         return EnumActionResult.SUCCESS;
