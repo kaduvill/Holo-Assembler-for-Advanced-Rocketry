@@ -155,7 +155,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                 x,
                 y,
                 buttonId,
-                getButtonTextForId(buttonId, label, enabled),
+                getButtonText(enabled),
                 this,
                 TextureResources.buttonBuild
         );
@@ -166,14 +166,12 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         return button;
     }
 
-    private static String getButtonTextForId(int buttonId, String label, boolean enabled) {
+    private static String getButtonText(boolean enabled) {
         return enabled ? "ON" : "OFF";
     }
 
     @SideOnly(Side.CLIENT)
     private class ModuleHoloAssemblerToggleButton extends ModuleButton {
-
-        private final String label;
 
         public ModuleHoloAssemblerToggleButton(int offsetX,
                                                int offsetY,
@@ -181,7 +179,6 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                                                String label,
                                                IButtonInventory tile) {
             super(offsetX, offsetY, buttonId, label, tile, TextureResources.buttonBuild);
-            this.label = label;
         }
 
         @Override
@@ -208,7 +205,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             boolean enabled = getToggleState(stack);
 
             if (button != null) {
-                button.displayString = getButtonText(stack, enabled);
+                button.displayString = getButtonText(enabled);
             }
 
             setColor(enabled ? COLOR_ON : COLOR_OFF);
@@ -237,8 +234,8 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             }
         }
 
-        private String getButtonText(ItemStack stack, boolean enabled) {
-            return getButtonTextForId(buttonId, label, enabled);
+        private String getButtonText(boolean enabled) {
+            return ItemHoloAssembler.getButtonText(enabled);
         }
     }
 
@@ -358,7 +355,6 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
 
         EnumFacing dir = BlockMultiblockMachine.getFront(world.getBlockState(controllerPos)).getOpposite();
 
-        int missing = 0;
         int blocked = 0;
         int alreadyValid = 0;
         int ignored = 0;
@@ -367,7 +363,6 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         int emcPlaced = 0;
         int missingItems = 0;
 
-        Map<String, Integer> couldNotPlace = new LinkedHashMap<>();
         boolean useInventorySource = useInventory(heldStack);
         boolean useEmcSource = useEmc(heldStack) && isEmcAvailable();
         boolean useMeSource = useMe(heldStack) && isMeAvailable();
@@ -409,18 +404,14 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
 
                     if (!canReplaceForAssembly(world, targetPos)) {
                         blocked++;
-                        addCouldNotPlace(couldNotPlace, allowed);
                         continue;
                     }
-
-                    missing++;
 
                     if (player.capabilities.isCreativeMode) {
                         if (placeFromInventory(world, targetPos, allowed, player)) {
                             placed++;
                         } else {
                             missingItems++;
-                            addCouldNotPlace(couldNotPlace, allowed);
                         }
 
                         continue;
@@ -436,7 +427,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                     } else if (useEmcSource && ProjectECompat.tryPlaceFromEMC(
                             player,
                             allowed,
-                            (block, meta) -> placeBlock(world, targetPos, block, meta, player)
+                            (block, meta) -> placeBlock(world, targetPos, block, meta)
                     )) {
                         placed++;
                         emcPlaced++;
@@ -444,53 +435,112 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                             heldStack,
                             player,
                             allowed,
-                            (block, meta) -> placeBlock(world, targetPos, block, meta, player)
+                            (block, meta) -> placeBlock(world, targetPos, block, meta)
                     )) {
                         placed++;
                         mePlaced++;
                     } else {
                         missingItems++;
-                        addCouldNotPlace(couldNotPlace, allowed);
                     }
                 }
             }
         }
 
-        if (missing == 0) {
-            if (debugOutput) {
-                send(player, "Structure complete. All required blocks are already correct."
-                        + " Already valid=" + alreadyValid
-                        + ", ignored=" + ignored
-                        + ", active sources=" + formatActiveSources(useInventorySource, useEmcSource, useMeSource)
-                        + ".");
+        Map<String, Integer> stillIncorrect = new LinkedHashMap<>();
+        int remainingIncorrect = collectRemainingIncorrect(
+                world,
+                controllerPos,
+                offset,
+                structure.length,
+                dir,
+                multiblock,
+                structure,
+                stillIncorrect
+        );
+        if (remainingIncorrect == 0) {
+            if (placed == 0) {
+                if (debugOutput) {
+                    send(player, "Structure complete. All required blocks are already correct."
+                            + " Already valid=" + alreadyValid
+                            + ", ignored=" + ignored
+                            + ", active sources=" + formatActiveSources(useInventorySource, useEmcSource, useMeSource)
+                            + ".");
+                } else {
+                    send(player, "Structure complete. All required blocks are already correct.");
+                }
             } else {
-                send(player, "Structure complete. All required blocks are already correct.");
-            }
-        } else if (couldNotPlace.isEmpty()) {
-            if (debugOutput) {
-                send(player, "Assembly complete. Placed=" + placed
-                        + formatSourcePlacedPart("EMC", emcPlaced, useEmcSource)
-                        + formatSourcePlacedPart("ME", mePlaced, useMeSource)
-                        + ". All required blocks are now correct.");
-            } else {
-                send(player, "Assembly complete. All required blocks are now correct.");
+                if (debugOutput) {
+                    send(player, "Assembly complete. Placed=" + placed
+                            + formatSourcePlacedPart("EMC", emcPlaced, useEmcSource)
+                            + formatSourcePlacedPart("ME", mePlaced, useMeSource)
+                            + ". All required blocks are now correct.");
+                } else {
+                    send(player, "Assembly complete. All required blocks are now correct.");
+                }
             }
         } else {
             if (debugOutput) {
-                send(player, "Could not place: " + formatCouldNotPlace(couldNotPlace)
+                send(player, "Could not place: " + formatCouldNotPlace(stillIncorrect)
                         + ". Placed=" + placed
                         + formatSourcePlacedPart("EMC", emcPlaced, useEmcSource)
                         + formatSourcePlacedPart("ME", mePlaced, useMeSource)
+                        + ", still incorrect=" + remainingIncorrect
                         + ", blocked=" + blocked
                         + ", missing sources=" + missingItems
                         + ", active sources=" + formatActiveSources(useInventorySource, useEmcSource, useMeSource)
                         + ".");
             } else {
-                send(player, "Could not place: " + formatCouldNotPlace(couldNotPlace) + ".");
+                send(player, "Could not place: " + formatCouldNotPlace(stillIncorrect) + ".");
             }
         }
 
         return EnumActionResult.SUCCESS;
+    }
+
+    private static int collectRemainingIncorrect(World world,
+                                                 BlockPos controllerPos,
+                                                 BlockPos offset,
+                                                 int structureHeight,
+                                                 EnumFacing dir,
+                                                 TileMultiBlock multiblock,
+                                                 Object[][][] structure,
+                                                 Map<String, Integer> stillIncorrect) {
+        int remaining = 0;
+
+        for (int y = 0; y < structure.length; y++) {
+            for (int z = 0; z < structure[0].length; z++) {
+                for (int x = 0; x < structure[0][0].length; x++) {
+                    Object cell = structure[y][z][x];
+
+                    if (cell == null) {
+                        continue;
+                    }
+
+                    if (cell instanceof Character && (Character) cell == 'c') {
+                        continue;
+                    }
+
+                    List<BlockMeta> allowed = multiblock.getAllowableBlocks(cell);
+
+                    if (allowed == null || allowed.isEmpty()) {
+                        continue;
+                    }
+
+                    if (isAirRequirement(allowed)) {
+                        continue;
+                    }
+
+                    BlockPos targetPos = toWorldPos(controllerPos, offset, structureHeight, dir, x, y, z);
+
+                    if (!matchesAllowed(world, targetPos, allowed)) {
+                        remaining++;
+                        addCouldNotPlace(stillIncorrect, allowed);
+                    }
+                }
+            }
+        }
+
+        return remaining;
     }
 
     private static boolean canReplaceForAssembly(World world, BlockPos pos) {
@@ -533,18 +583,16 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                 continue;
             }
 
-            int wantedMeta = blockMeta.getMeta();
-
             if (player.capabilities.isCreativeMode) {
-                int creativeMeta = isWildcardMeta(wantedMeta) ? 0 : wantedMeta;
+                IBlockState state = blockMeta.getBlockState();
 
-                if (placeBlock(world, pos, block, creativeMeta, player)) {
+                if (placeBlockState(world, pos, state)) {
                     return true;
                 }
                 continue;
             }
 
-            int slot = findInventorySlot(player, block, wantedMeta);
+            int slot = findInventorySlot(player, blockMeta);
             if (slot < 0) {
                 continue;
             }
@@ -554,9 +602,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                 continue;
             }
 
-            int metaToPlace = isWildcardMeta(wantedMeta) ? stack.getMetadata() : wantedMeta;
-
-            if (!placeBlock(world, pos, block, metaToPlace, player)) {
+            if (!placeBlock(world, pos, block, stack.getMetadata())) {
                 continue;
             }
 
@@ -577,8 +623,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
     private static boolean placeBlock(World world,
                                       BlockPos pos,
                                       Block block,
-                                      int meta,
-                                      EntityPlayer player) {
+                                      int meta) {
         IBlockState state;
 
         try {
@@ -594,7 +639,8 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         return world.setBlockState(pos, state, 3);
     }
 
-    private static int findInventorySlot(EntityPlayer player, Block block, int wantedMeta) {
+    private static int findInventorySlot(EntityPlayer player, BlockMeta wantedBlockMeta) {
+        Block block = wantedBlockMeta.getBlock();
         Item wantedItem = Item.getItemFromBlock(block);
 
         if (wantedItem == null || wantedItem == Item.getItemFromBlock(Blocks.AIR)) {
@@ -616,12 +662,22 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                 continue;
             }
 
-            if (isWildcardMeta(wantedMeta) || stack.getMetadata() == wantedMeta) {
+            BlockMeta actual = new BlockMeta(block, stack.getMetadata());
+
+            if (wantedBlockMeta.equals(actual)) {
                 return slot;
             }
         }
 
         return -1;
+    }
+
+    private static boolean placeBlockState(World world, BlockPos pos, IBlockState state) {
+        if (!canReplaceForAssembly(world, pos)) {
+            return false;
+        }
+
+        return world.setBlockState(pos, state, 3);
     }
 
     private static BlockPos getControllerOffset(Object[][][] structure) {
@@ -669,26 +725,18 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         Block block = state.getBlock();
         int meta = block.getMetaFromState(state);
 
+        BlockMeta actual = new BlockMeta(block, meta);
         for (BlockMeta allowedBlock : allowed) {
             if (allowedBlock == null) {
                 continue;
             }
-
-            if (allowedBlock.getBlock() != block) {
-                continue;
-            }
-
-            int allowedMeta = allowedBlock.getMeta();
-
-            if (allowedMeta == meta || isWildcardMeta(allowedMeta)) {
+            if (allowedBlock.equals(actual)) {
                 return true;
             }
         }
 
         return false;
     }
-
-
 
     private static boolean isAirRequirement(List<BlockMeta> allowed) {
         for (BlockMeta blockMeta : allowed) {
