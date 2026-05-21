@@ -368,6 +368,9 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         int missingItems = 0;
 
         Map<String, Integer> couldNotPlace = new LinkedHashMap<>();
+        boolean useInventorySource = useInventory(heldStack);
+        boolean useEmcSource = useEmc(heldStack) && isEmcAvailable();
+        boolean useMeSource = useMe(heldStack) && isMeAvailable();
 
         for (int y = 0; y < structure.length; y++) {
             for (int z = 0; z < structure[0].length; z++) {
@@ -423,21 +426,20 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                     }
 
                     boolean didPlace = false;
-
-                    if (useInventory(heldStack)) {
+                    if (useInventorySource) {
                         didPlace = placeFromInventory(world, targetPos, allowed, player);
                     }
 
                     if (didPlace) {
                         placed++;
-                    } else if (useEmc(heldStack) && isEmcAvailable() && ProjectECompat.tryPlaceFromEMC(
+                    } else if (useEmcSource && ProjectECompat.tryPlaceFromEMC(
                             player,
                             allowed,
                             (block, meta) -> placeBlock(world, targetPos, block, meta, player)
                     )) {
                         placed++;
                         emcPlaced++;
-                    } else if (useMe(heldStack) && isMeAvailable() && AE2Compat.tryPlaceFromME(
+                    } else if (useMeSource && AE2Compat.tryPlaceFromME(
                             heldStack,
                             player,
                             allowed,
@@ -457,16 +459,18 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             send(player, "Structure complete. All required blocks are already correct.");
         } else if (couldNotPlace.isEmpty()) {
             send(player, "Assembly complete. Placed=" + placed
-                    + formatMePart(mePlaced)
-                    + formatEmcPart(emcPlaced)
+                    + formatSourcePlacedPart("EMC", emcPlaced, useEmcSource)
+                    + formatSourcePlacedPart("ME", mePlaced, useMeSource)
                     + ". All required blocks are now correct.");
         } else {
             send(player, "Could not place: " + formatCouldNotPlace(couldNotPlace)
                     + ". Placed=" + placed
-                    + formatMePart(mePlaced)
-                    + formatEmcPart(emcPlaced)
+                    + formatSourcePlacedPart("EMC", emcPlaced, useEmcSource)
+                    + formatSourcePlacedPart("ME", mePlaced, useMeSource)
                     + ", blocked=" + blocked
-                    + ", missing sources=" + missingItems + ".");
+                    + ", missing sources=" + missingItems
+                    + ", active sources=" + formatActiveSources(useInventorySource, useEmcSource, useMeSource)
+                    + ".");
         }
 
         return EnumActionResult.SUCCESS;
@@ -754,12 +758,31 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         return joiner.toString();
     }
 
-    private static String formatEmcPart(int emcPlaced) {
-        return emcPlaced > 0 ? ", EMC placed=" + emcPlaced : "";
+    private static String formatSourcePlacedPart(String sourceName, int placed, boolean sourceAvailable) {
+        if (!sourceAvailable || placed <= 0) {
+            return "";
+        }
+
+        return ", " + sourceName + " placed=" + placed;
     }
 
-    private static String formatMePart(int mePlaced) {
-        return mePlaced > 0 ? ", ME placed=" + mePlaced : "";
+    private static String formatActiveSources(boolean inventory, boolean emc, boolean me) {
+        StringJoiner joiner = new StringJoiner(" > ");
+
+        if (inventory) {
+            joiner.add("Inventory");
+        }
+
+        if (emc) {
+            joiner.add("EMC");
+        }
+
+        if (me) {
+            joiner.add("ME");
+        }
+
+        String result = joiner.toString();
+        return result.isEmpty() ? "None" : result;
     }
 
     private static void send(EntityPlayer player, String message) {

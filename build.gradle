@@ -94,7 +94,7 @@ dependencies {
     runtimeOnly rfg.deobf(files('libs/libvulpes-0.5.3-dev.jar'))
 
     runtimeOnly rfg.deobf('curse.maven:jei-238222:3040523')
-    //runtimeOnly rfg.deobf('curse.maven:projecte-226410:2702991')
+    runtimeOnly rfg.deobf('curse.maven:projecte-226410:2702991')
     runtimeOnly rfg.deobf('curse.maven:ae2-extended-life-570458:5411078')
 }
 
