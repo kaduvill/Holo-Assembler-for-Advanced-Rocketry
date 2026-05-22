@@ -29,6 +29,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import zmaster587.libVulpes.LibVulpes;
+import zmaster587.libVulpes.api.LibVulpesBlocks;
 import zmaster587.libVulpes.block.BlockMeta;
 import zmaster587.libVulpes.block.multiblock.BlockMultiblockMachine;
 import zmaster587.libVulpes.inventory.GuiHandler;
@@ -50,6 +51,7 @@ import javax.annotation.Nullable;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
 
@@ -408,7 +410,9 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                     }
 
                     if (player.capabilities.isCreativeMode) {
-                        if (placeFromInventory(world, targetPos, allowed, player)) {
+                        List<BlockMeta> creativeAllowed = getAllowedForCreativeAutomaticPlacement(cell, allowed);
+
+                        if (placeFromInventory(world, targetPos, creativeAllowed, player)) {
                             placed++;
                         } else {
                             missingItems++;
@@ -417,16 +421,23 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                         continue;
                     }
 
+                    List<BlockMeta> survivalAllowed = getAllowedForSurvivalAutomaticPlacement(allowed);
+
+                    if (survivalAllowed.isEmpty()) {
+                        missingItems++;
+                        continue;
+                    }
+
                     boolean didPlace = false;
                     if (useInventorySource) {
-                        didPlace = placeFromInventory(world, targetPos, allowed, player);
+                        didPlace = placeFromInventory(world, targetPos, survivalAllowed, player);
                     }
 
                     if (didPlace) {
                         placed++;
                     } else if (useEmcSource && ProjectECompat.tryPlaceFromEMC(
                             player,
-                            allowed,
+                            survivalAllowed,
                             (block, meta) -> placeBlock(world, targetPos, block, meta)
                     )) {
                         placed++;
@@ -434,7 +445,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                     } else if (useMeSource && AE2Compat.tryPlaceFromME(
                             heldStack,
                             player,
-                            allowed,
+                            survivalAllowed,
                             (block, meta) -> placeBlock(world, targetPos, block, meta)
                     )) {
                         placed++;
@@ -541,6 +552,56 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         }
 
         return remaining;
+    }
+
+    private static List<BlockMeta> getAllowedForCreativeAutomaticPlacement(Object cell,
+                                                                           List<BlockMeta> allowed) {
+        if (!isPowerInputCell(cell)) {
+            return allowed;
+        }
+
+        List<BlockMeta> preferred = new LinkedList<>();
+
+        for (BlockMeta blockMeta : allowed) {
+            if (blockMeta != null && isCreativePowerInput(blockMeta)) {
+                preferred.add(blockMeta);
+            }
+        }
+
+        for (BlockMeta blockMeta : allowed) {
+            if (blockMeta != null && !isCreativePowerInput(blockMeta)) {
+                preferred.add(blockMeta);
+            }
+        }
+
+        return preferred;
+    }
+
+    private static boolean isPowerInputCell(Object cell) {
+        return cell instanceof Character && (Character) cell == 'P';
+    }
+
+    private static List<BlockMeta> getAllowedForSurvivalAutomaticPlacement(List<BlockMeta> allowed) {
+        List<BlockMeta> filtered = new LinkedList<>();
+
+        for (BlockMeta blockMeta : allowed) {
+            if (blockMeta == null) {
+                continue;
+            }
+
+            if (isCreativePowerInput(blockMeta)) {
+                continue;
+            }
+
+            filtered.add(blockMeta);
+        }
+
+        return filtered;
+    }
+
+    private static boolean isCreativePowerInput(BlockMeta blockMeta) {
+        return LibVulpesBlocks.blockCreativeInputPlug != null
+                && blockMeta.getBlock() == LibVulpesBlocks.blockCreativeInputPlug;
     }
 
     private static boolean canReplaceForAssembly(World world, BlockPos pos) {
@@ -787,6 +848,12 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
     }
 
     private static String getDisplayNameForAllowedBlock(List<BlockMeta> allowed) {
+        List<BlockMeta> preferredAllowed = getAllowedForSurvivalAutomaticPlacement(allowed);
+
+        if (!preferredAllowed.isEmpty()) {
+            allowed = preferredAllowed;
+        }
+
         for (BlockMeta blockMeta : allowed) {
             if (blockMeta == null) {
                 continue;
@@ -801,13 +868,13 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             Item item = Item.getItemFromBlock(block);
 
             if (item == null || item == Item.getItemFromBlock(Blocks.AIR)) {
-                return block.getLocalizedName();
+                return simplifyFeedbackName(block.getLocalizedName());
             }
 
             int meta = blockMeta.getMeta();
             int displayMeta = isWildcardMeta(meta) ? 0 : meta;
 
-            return new ItemStack(item, 1, displayMeta).getDisplayName();
+            return simplifyFeedbackName(new ItemStack(item, 1, displayMeta).getDisplayName());
         }
 
         return "Unknown block";
@@ -932,6 +999,24 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             nbt.setBoolean(NBT_USE_ME, in.readBoolean());
             nbt.setBoolean(NBT_DEBUG, in.readBoolean());
         }
+    }
+
+    private static String simplifyFeedbackName(String name) {
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
+
+        String lowerName = name.toLowerCase(Locale.ROOT);
+
+        if (lowerName.endsWith(" hatch")) {
+            return name.substring(0, name.length() - " hatch".length()).trim();
+        }
+
+        if (lowerName.endsWith(" plug")) {
+            return name.substring(0, name.length() - " plug".length()).trim();
+        }
+
+        return name;
     }
 
     @Override
