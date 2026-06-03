@@ -3,6 +3,5 @@
 - Localized and ready for translation PRs
 
 0.3.0
-first alpha
-
-DEV-release: not safe for server
+- first alpha
+- DEV-release: not safe for server
