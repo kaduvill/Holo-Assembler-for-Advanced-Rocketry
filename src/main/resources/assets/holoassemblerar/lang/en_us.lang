@@ -1,6 +1,30 @@
 item.holoassemblerar.holo_assembler.name=Holo-Assembler
-item.holoassemblerar.holo_assembler.tooltip=Builds Advanced Rocketry multiblocks from their controllers.
-item.holoassemblerar.holo_assembler.tooltip.sneak=Sneak-right-click an Advanced Rocketry multiblock controller to assemble missing blocks.
-item.holoassemblerar.holo_assembler.tooltip.preview=Right-click an Advanced Rocketry multiblock controller to preview missing blocks.
+tooltip.holoassemblerar.me_link.not_linked=Not linked
+tooltip.holoassemblerar.me_link.linked=Linked
+tooltip.holoassemblerar.me_link.named=%s
+tooltip.holoassemblerar.sources=Sources:
+tooltip.holoassemblerar.sources.none=None
+tooltip.holoassemblerar.source_separator=>
+tooltip.holoassemblerar.me_link=ME Link:
+tooltip.holoassemblerar.description=Builds Advanced Rocketry multiblock structures from available sources.
+tooltip.holoassemblerar.use.assemble=Right-click controller to assemble.
+tooltip.holoassemblerar.use.settings=Sneak-right-click to open settings.
+
+gui.holoassemblerar.source.inventory=Inventory
+gui.holoassemblerar.source.emc=EMC
+gui.holoassemblerar.source.me=ME
+gui.holoassemblerar.source.debug=Debug
+gui.holoassemblerar.button.on=ON
+gui.holoassemblerar.button.off=OFF
+
+message.holoassemblerar.no_structure=[Holo-Assembler] No structure found.
+message.holoassemblerar.no_controller_marker=[Holo-Assembler] No controller marker found in structure.
+message.holoassemblerar.structure_complete=[Holo-Assembler] Structure complete. All required blocks are already correct.
+message.holoassemblerar.structure_complete.debug=[Holo-Assembler] Structure complete. All required blocks are already correct. Already valid=%s, ignored=%s, active sources=%s.
+message.holoassemblerar.assembly_complete=[Holo-Assembler] Assembly complete. All required blocks are now correct.
+message.holoassemblerar.assembly_complete.debug=[Holo-Assembler] Assembly complete. Placed=%s, EMC placed=%s, ME placed=%s. All required blocks are now correct.
+message.holoassemblerar.could_not_place=[Holo-Assembler] Could not place: %s.
+message.holoassemblerar.could_not_place.debug=[Holo-Assembler] Could not place: %s. Placed=%s, EMC placed=%s, ME placed=%s, still incorrect=%s, blocked=%s, missing sources=%s, active sources=%s.
+message.holoassemblerar.unknown_block=Unknown block
 
 itemGroup.holoassemblerar=Holo-Assembler AR

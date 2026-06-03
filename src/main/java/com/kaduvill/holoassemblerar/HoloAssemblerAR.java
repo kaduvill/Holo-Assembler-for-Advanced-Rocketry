@@ -1,20 +1,19 @@
 package com.kaduvill.holoassemblerar;
 
 import com.kaduvill.holoassemblerar.item.ItemHoloAssembler;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.event.ModelRegistryEvent;
-import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.logging.log4j.Logger;
+import com.kaduvill.holoassemblerar.config.HoloAssemblerConfig;
+import com.kaduvill.holoassemblerar.compat.AE2Compat;
 
 @Mod(
         modid = HoloAssemblerAR.MOD_ID,
@@ -32,7 +31,9 @@ public class HoloAssemblerAR {
 
     public static final String DEPENDENCIES =
             "required-after:libvulpes;" +
-                    "required-after:advancedrocketry";
+                    "required-after:advancedrocketry;" +
+                    "after:projecte;" +
+                    "after:appliedenergistics2";
 
     public static final ItemHoloAssembler HOLO_ASSEMBLER = new ItemHoloAssembler();
 
@@ -51,8 +52,8 @@ public class HoloAssemblerAR {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         logger = event.getModLog();
+        HoloAssemblerConfig.load(event.getSuggestedConfigurationFile());
         logger.info("{} loaded", MOD_NAME);
-        logger.info("Source: {}", event.getSourceFile());
     }
 
     @SubscribeEvent
@@ -62,13 +63,10 @@ public class HoloAssemblerAR {
         event.getRegistry().register(HOLO_ASSEMBLER);
     }
 
-    @SideOnly(Side.CLIENT)
-    @SubscribeEvent
-    public static void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(
-                HOLO_ASSEMBLER,
-                0,
-                new ModelResourceLocation(MOD_ID + ":holo_assembler", "inventory")
-        );
+    @Mod.EventHandler
+    public void init(FMLInitializationEvent event) {
+        if (Loader.isModLoaded("appliedenergistics2")) {
+            AE2Compat.registerWirelessHandler();
+        }
     }
 }

@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ogo",
+    "epe"
+  ],
+  "key": {
+    "o": {
+      "item": "advancedrocketry:satelliteprimaryfunction",
+      "data": 0
+    },
+    "g": {
+      "type": "forge:ore_dict",
+      "ore": "dustGlowstone"
+    },
+    "e": {
+      "item": "minecraft:ender_pearl"
+    },
+    "p": {
+      "type": "forge:ore_dict",
+      "ore": "plateIron"
+    }
+  },
+  "result": {
+    "item": "holoassemblerar:holo_assembler",
+    "count": 1
+  }
+}

@@ -1,35 +1,328 @@
 package com.kaduvill.holoassemblerar.item;
 
+import com.kaduvill.holoassemblerar.compat.AE2Compat;
+import com.kaduvill.holoassemblerar.compat.ProjectECompat;
+import com.kaduvill.holoassemblerar.config.HoloAssemblerConfig;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.world.World;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import zmaster587.libVulpes.LibVulpes;
+import zmaster587.libVulpes.api.LibVulpesBlocks;
 import zmaster587.libVulpes.block.BlockMeta;
 import zmaster587.libVulpes.block.multiblock.BlockMultiblockMachine;
+import zmaster587.libVulpes.inventory.GuiHandler;
+import zmaster587.libVulpes.inventory.TextureResources;
+import zmaster587.libVulpes.inventory.modules.IButtonInventory;
+import zmaster587.libVulpes.inventory.modules.IGuiCallback;
+import zmaster587.libVulpes.inventory.modules.IModularInventory;
+import zmaster587.libVulpes.inventory.modules.ModuleBase;
+import zmaster587.libVulpes.inventory.modules.ModuleButton;
+import zmaster587.libVulpes.inventory.modules.ModuleContainerPan;
+import zmaster587.libVulpes.inventory.modules.ModuleText;
+import zmaster587.libVulpes.network.INetworkItem;
+import zmaster587.libVulpes.network.PacketHandler;
+import zmaster587.libVulpes.network.PacketItemModifcation;
 import zmaster587.libVulpes.tile.multiblock.TileMultiBlock;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.StringJoiner;
 
-public class ItemHoloAssembler extends Item {
+public class ItemHoloAssembler extends Item implements IModularInventory, IButtonInventory, IGuiCallback, INetworkItem {
 
-    private static final int MAX_BLOCKS_PER_USE = 64;
+    private static final String NBT_USE_INVENTORY = "UseInventory";
+    private static final String NBT_USE_EMC = "UseEmc";
+    private static final String NBT_USE_ME = "UseMe";
+    private static final String NBT_DEBUG = "Debug";
+
+    private static final byte PACKET_SETTINGS = 0;
+
+    private static final String LANG_GUI_SOURCE_INVENTORY = "gui.holoassemblerar.source.inventory";
+    private static final String LANG_GUI_SOURCE_EMC = "gui.holoassemblerar.source.emc";
+    private static final String LANG_GUI_SOURCE_ME = "gui.holoassemblerar.source.me";
+    private static final String LANG_GUI_SOURCE_DEBUG = "gui.holoassemblerar.source.debug";
+    private static final String LANG_GUI_BUTTON_ON = "gui.holoassemblerar.button.on";
+    private static final String LANG_GUI_BUTTON_OFF = "gui.holoassemblerar.button.off";
+
+    private static final String LANG_MSG_NO_STRUCTURE = "message.holoassemblerar.no_structure";
+    private static final String LANG_MSG_NO_CONTROLLER = "message.holoassemblerar.no_controller_marker";
+    private static final String LANG_MSG_STRUCTURE_COMPLETE = "message.holoassemblerar.structure_complete";
+    private static final String LANG_MSG_STRUCTURE_COMPLETE_DEBUG = "message.holoassemblerar.structure_complete.debug";
+    private static final String LANG_MSG_ASSEMBLY_COMPLETE = "message.holoassemblerar.assembly_complete";
+    private static final String LANG_MSG_ASSEMBLY_COMPLETE_DEBUG = "message.holoassemblerar.assembly_complete.debug";
+    private static final String LANG_MSG_COULD_NOT_PLACE = "message.holoassemblerar.could_not_place";
+    private static final String LANG_MSG_COULD_NOT_PLACE_DEBUG = "message.holoassemblerar.could_not_place.debug";
+    private static final String LANG_MSG_UNKNOWN_BLOCK = "message.holoassemblerar.unknown_block";
+
+    private static final int BTN_INVENTORY = 0;
+    private static final int BTN_EMC = 1;
+    private static final int BTN_ME = 2;
+    private static final int BTN_DEBUG = 3;
+
+    private static final int COLOR_ON = 0xFF55FF55;
+    private static final int COLOR_OFF = 0xFFFF5555;
+    private static final int TEXT_COLOR = 0x404040;
+
+    private static final int PANEL_X = 5;
+    private static final int PANEL_Y = 20;
+    private static final int PANEL_WIDTH = 160;
+    private static final int PANEL_HEIGHT = 100;
+
+    private static final int LABEL_X = 8;
+    private static final int BUTTON_X = 72;
+    private static final int FIRST_ROW_Y = 4;
+    private static final int ROW_SPACING = 22;
+
+    private static final int BUTTON_BG_NORMAL = 0xFFFFFFFF;
+    private static final int BUTTON_BG_SELECTED = 0xFF444444;
 
     public ItemHoloAssembler() {
         setMaxStackSize(1);
         setUnlocalizedName("holoassemblerar.holo_assembler");
+    }
+
+    @Override
+    public List<ModuleBase> getModules(int ID, EntityPlayer player) {
+        List<ModuleBase> modules = new LinkedList<>();
+        List<ModuleBase> panelModules = new LinkedList<>();
+
+        ItemStack stack = player == null ? ItemStack.EMPTY : player.getHeldItem(EnumHand.MAIN_HAND);
+        boolean isClient = player != null && player.world.isRemote;
+
+        int y = FIRST_ROW_Y;
+
+        panelModules.add(new ModuleText(LABEL_X, y + 4, tr(LANG_GUI_SOURCE_INVENTORY), TEXT_COLOR));
+        panelModules.add(makeToggleButton(BTN_INVENTORY, BUTTON_X, y, useInventory(stack), isClient));
+        y += ROW_SPACING;
+
+        if (isEmcAvailable()) {
+            panelModules.add(new ModuleText(LABEL_X, y + 4, tr(LANG_GUI_SOURCE_EMC), TEXT_COLOR));
+            panelModules.add(makeToggleButton(BTN_EMC, BUTTON_X, y, useEmc(stack), isClient));
+            y += ROW_SPACING;
+        }
+
+        if (isMeAvailable()) {
+            panelModules.add(new ModuleText(LABEL_X, y + 4, tr(LANG_GUI_SOURCE_ME), TEXT_COLOR));
+            panelModules.add(makeToggleButton(BTN_ME, BUTTON_X, y, useMe(stack), isClient));
+            y += ROW_SPACING;
+        }
+
+        if (HoloAssemblerConfig.enableDebugMode) {
+            panelModules.add(new ModuleText(LABEL_X, y + 4, tr(LANG_GUI_SOURCE_DEBUG), TEXT_COLOR));
+            panelModules.add(makeToggleButton(BTN_DEBUG, BUTTON_X, y, isDebugEnabled(stack), isClient));
+        }
+
+        modules.add(new ModuleStaticStarryPanel(
+                PANEL_X,
+                PANEL_Y,
+                panelModules,
+                new LinkedList<>(),
+                TextureResources.starryBG,
+                PANEL_WIDTH,
+                PANEL_HEIGHT,
+                0,
+                500
+        ));
+
+        return modules;
+    }
+
+    private ModuleButton makeToggleButton(int buttonId,
+                                          int x,
+                                          int y,
+                                          boolean enabled,
+                                          boolean isClient) {
+        String text = getButtonText(enabled);
+
+        if (isClient) {
+            ModuleButton button = new ModuleHoloAssemblerToggleButton(
+                    x,
+                    y,
+                    buttonId,
+                    text,
+                    this
+            );
+            button.setColor(enabled ? COLOR_ON : COLOR_OFF);
+            button.setBGColor(enabled ? BUTTON_BG_SELECTED : BUTTON_BG_NORMAL);
+
+            return button;
+        }
+
+        return new ModuleButton(
+                x,
+                y,
+                buttonId,
+                text,
+                this,
+                TextureResources.buttonBuild
+        );
+    }
+
+    private static String getButtonText(boolean enabled) {
+        return tr(enabled ? LANG_GUI_BUTTON_ON : LANG_GUI_BUTTON_OFF);
+    }
+
+    private static String tr(String key) {
+        return LibVulpes.proxy.getLocalizedString(key);
+    }
+
+    private static class ModuleHoloAssemblerToggleButton extends ModuleButton {
+
+        public ModuleHoloAssemblerToggleButton(int offsetX,
+                                               int offsetY,
+                                               int buttonId,
+                                               String label,
+                                               IButtonInventory tile) {
+            super(offsetX, offsetY, buttonId, label, tile, TextureResources.buttonBuild);
+        }
+
+        @Override
+        @SideOnly(Side.CLIENT)
+        public void renderForeground(int guiOffsetX,
+                                     int guiOffsetY,
+                                     int mouseX,
+                                     int mouseY,
+                                     float zLevel,
+                                     GuiContainer gui,
+                                     FontRenderer font) {
+            if (button != null && !button.visible) {
+                return;
+            }
+
+            EntityPlayer player = Minecraft.getMinecraft().player;
+            if (player == null) {
+                return;
+            }
+
+            ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
+            boolean enabled = getToggleState(stack);
+
+            String text = getButtonText(enabled);
+            setText(text);
+
+            if (button != null) {
+                button.displayString = text;
+            }
+
+            setColor(enabled ? COLOR_ON : COLOR_OFF);
+            setBGColor(enabled ? BUTTON_BG_SELECTED : BUTTON_BG_NORMAL);
+
+            super.renderForeground(guiOffsetX, guiOffsetY, mouseX, mouseY, zLevel, gui, font);
+        }
+
+        private boolean getToggleState(ItemStack stack) {
+            if (stack.isEmpty() || !(stack.getItem() instanceof ItemHoloAssembler)) {
+                return false;
+            }
+
+            switch (buttonId) {
+                case BTN_INVENTORY:
+                    return useInventory(stack);
+
+                case BTN_EMC:
+                    return useEmc(stack) && isEmcAvailable();
+
+                case BTN_ME:
+                    return useMe(stack) && isMeAvailable();
+
+                case BTN_DEBUG:
+                    return isDebugEnabled(stack) && HoloAssemblerConfig.enableDebugMode;
+
+                default:
+                    return false;
+            }
+        }
+    }
+
+    @Override
+    public String getModularInventoryName() {
+        return "item.holoassemblerar.holo_assembler.name";
+    }
+
+    @Override
+    public boolean canInteractWithContainer(EntityPlayer player) {
+        return player != null
+                && !player.isDead
+                && !player.getHeldItem(EnumHand.MAIN_HAND).isEmpty()
+                && player.getHeldItem(EnumHand.MAIN_HAND).getItem() == this;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void onInventoryButtonPressed(int buttonId) {
+        EntityPlayer player = Minecraft.getMinecraft().player;
+
+        if (player == null) {
+            return;
+        }
+
+        ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
+
+        if (stack.isEmpty() || stack.getItem() != this) {
+            return;
+        }
+
+        switch (buttonId) {
+
+            case BTN_INVENTORY:
+                setUseInventory(stack, !useInventory(stack));
+                break;
+
+            case BTN_EMC:
+                if (isEmcAvailable()) {
+                    setUseEmc(stack, !useEmc(stack));
+                }
+                break;
+
+            case BTN_ME:
+                if (isMeAvailable()) {
+                    setUseMe(stack, !useMe(stack));
+                }
+                break;
+
+            case BTN_DEBUG:
+                if (HoloAssemblerConfig.enableDebugMode) {
+                    setDebugEnabled(stack, !isDebugEnabled(stack));
+                }
+                break;
+
+            default:
+                return;
+        }
+
+        PacketHandler.sendToServer(new PacketItemModifcation(this, player, PACKET_SETTINGS));
+    }
+
+    @Override
+    public void onModuleUpdated(ModuleBase module) {
     }
 
     @Override
@@ -41,6 +334,23 @@ public class ItemHoloAssembler extends Item {
                                       float hitX,
                                       float hitY,
                                       float hitZ) {
+        ItemStack heldStack = player.getHeldItem(hand);
+
+        if (player.isSneaking()) {
+            if (!world.isRemote) {
+                player.openGui(
+                        LibVulpes.instance,
+                        GuiHandler.guiId.MODULARNOINV.ordinal(),
+                        world,
+                        -1,
+                        -1,
+                        0
+                );
+            }
+
+            return EnumActionResult.SUCCESS;
+        }
+
         if (world.isRemote) {
             return EnumActionResult.SUCCESS;
         }
@@ -48,35 +358,38 @@ public class ItemHoloAssembler extends Item {
         TileEntity tile = world.getTileEntity(controllerPos);
 
         if (!(tile instanceof TileMultiBlock)) {
-            send(player, "Not an Advanced Rocketry multiblock controller.");
-            return EnumActionResult.FAIL;
+            return EnumActionResult.PASS;
         }
 
         TileMultiBlock multiblock = (TileMultiBlock) tile;
         Object[][][] structure = multiblock.getStructure();
 
         if (structure == null) {
-            send(player, "No structure found.");
+            send(player, LANG_MSG_NO_STRUCTURE);
             return EnumActionResult.FAIL;
         }
 
         BlockPos offset = getControllerOffset(structure);
 
         if (offset == null) {
-            send(player, "No controller marker found in structure.");
+            send(player, LANG_MSG_NO_CONTROLLER);
             return EnumActionResult.FAIL;
         }
 
         EnumFacing dir = BlockMultiblockMachine.getFront(world.getBlockState(controllerPos)).getOpposite();
 
-        int missing = 0;
         int blocked = 0;
         int alreadyValid = 0;
         int ignored = 0;
         int placed = 0;
+        int mePlaced = 0;
+        int emcPlaced = 0;
         int missingItems = 0;
 
-        boolean assemble = player.isSneaking();
+        boolean useInventorySource = useInventory(heldStack);
+        boolean useEmcSource = useEmc(heldStack) && isEmcAvailable();
+        boolean useMeSource = useMe(heldStack) && isMeAvailable();
+        boolean debugOutput = HoloAssemblerConfig.enableDebugMode && isDebugEnabled(heldStack);
 
         for (int y = 0; y < structure.length; y++) {
             for (int z = 0; z < structure[0].length; z++) {
@@ -112,39 +425,238 @@ public class ItemHoloAssembler extends Item {
                         continue;
                     }
 
-                    IBlockState existing = world.getBlockState(targetPos);
-
-                    if (!world.isAirBlock(targetPos) && !existing.getBlock().isReplaceable(world, targetPos)) {
+                    if (!canReplaceForAssembly(world, targetPos)) {
                         blocked++;
                         continue;
                     }
 
-                    missing++;
+                    if (player.capabilities.isCreativeMode) {
+                        List<BlockMeta> creativeAllowed = getAllowedForCreativeAutomaticPlacement(cell, allowed);
 
-                    if (assemble && placed < MAX_BLOCKS_PER_USE) {
-                        if (placeFromInventory(world, targetPos, allowed, player)) {
+                        if (placeFromInventory(world, targetPos, creativeAllowed, player)) {
                             placed++;
                         } else {
                             missingItems++;
                         }
+
+                        continue;
+                    }
+
+                    List<BlockMeta> survivalAllowed = getAllowedForSurvivalAutomaticPlacement(allowed);
+
+                    if (survivalAllowed.isEmpty()) {
+                        missingItems++;
+                        continue;
+                    }
+
+                    boolean didPlace = false;
+                    if (useInventorySource) {
+                        didPlace = placeFromInventory(world, targetPos, survivalAllowed, player);
+                    }
+
+                    if (didPlace) {
+                        placed++;
+                    } else if (useEmcSource && ProjectECompat.tryPlaceFromEMC(
+                            player,
+                            survivalAllowed,
+                            (block, meta) -> placeBlock(world, targetPos, block, meta)
+                    )) {
+                        placed++;
+                        emcPlaced++;
+                    } else if (useMeSource && AE2Compat.tryPlaceFromME(
+                            heldStack,
+                            player,
+                            survivalAllowed,
+                            (block, meta) -> placeBlock(world, targetPos, block, meta)
+                    )) {
+                        placed++;
+                        mePlaced++;
+                    } else {
+                        missingItems++;
                     }
                 }
             }
         }
 
-        if (assemble) {
-            send(player, "Assembly: placed=" + placed
-                    + ", missing items=" + missingItems
-                    + ", blocked=" + blocked
-                    + ", already valid=" + alreadyValid + ".");
+        Map<String, Integer> stillIncorrect = new LinkedHashMap<>();
+        int remainingIncorrect = collectRemainingIncorrect(
+                world,
+                controllerPos,
+                offset,
+                structure.length,
+                dir,
+                multiblock,
+                structure,
+                stillIncorrect
+        );
+        if (remainingIncorrect == 0) {
+            if (placed == 0) {
+                if (debugOutput) {
+                    send(
+                            player,
+                            LANG_MSG_STRUCTURE_COMPLETE_DEBUG,
+                            alreadyValid,
+                            ignored,
+                            formatActiveSources(useInventorySource, useEmcSource, useMeSource)
+                    );
+                } else {
+                    send(player, LANG_MSG_STRUCTURE_COMPLETE);
+                }
+            } else {
+                if (debugOutput) {
+                    send(
+                            player,
+                            LANG_MSG_ASSEMBLY_COMPLETE_DEBUG,
+                            placed,
+                            emcPlaced,
+                            mePlaced
+                    );
+                } else {
+                    send(player, LANG_MSG_ASSEMBLY_COMPLETE);
+                }
+            }
         } else {
-            send(player, "Structure check: missing=" + missing
-                    + ", blocked=" + blocked
-                    + ", already valid=" + alreadyValid
-                    + ", ignored=" + ignored + ".");
+            if (debugOutput) {
+                send(
+                        player,
+                        LANG_MSG_COULD_NOT_PLACE_DEBUG,
+                        formatCouldNotPlace(stillIncorrect),
+                        placed,
+                        emcPlaced,
+                        mePlaced,
+                        remainingIncorrect,
+                        blocked,
+                        missingItems,
+                        formatActiveSources(useInventorySource, useEmcSource, useMeSource)
+                );
+            } else {
+                send(player, LANG_MSG_COULD_NOT_PLACE, formatCouldNotPlace(stillIncorrect));
+            }
         }
 
         return EnumActionResult.SUCCESS;
+    }
+
+    private static int collectRemainingIncorrect(World world,
+                                                 BlockPos controllerPos,
+                                                 BlockPos offset,
+                                                 int structureHeight,
+                                                 EnumFacing dir,
+                                                 TileMultiBlock multiblock,
+                                                 Object[][][] structure,
+                                                 Map<String, Integer> stillIncorrect) {
+        int remaining = 0;
+
+        for (int y = 0; y < structure.length; y++) {
+            for (int z = 0; z < structure[0].length; z++) {
+                for (int x = 0; x < structure[0][0].length; x++) {
+                    Object cell = structure[y][z][x];
+
+                    if (cell == null) {
+                        continue;
+                    }
+
+                    if (cell instanceof Character && (Character) cell == 'c') {
+                        continue;
+                    }
+
+                    List<BlockMeta> allowed = multiblock.getAllowableBlocks(cell);
+
+                    if (allowed == null || allowed.isEmpty()) {
+                        continue;
+                    }
+
+                    if (isAirRequirement(allowed)) {
+                        continue;
+                    }
+
+                    BlockPos targetPos = toWorldPos(controllerPos, offset, structureHeight, dir, x, y, z);
+
+                    if (!matchesAllowed(world, targetPos, allowed)) {
+                        remaining++;
+                        addCouldNotPlace(stillIncorrect, allowed);
+                    }
+                }
+            }
+        }
+
+        return remaining;
+    }
+
+    private static List<BlockMeta> getAllowedForCreativeAutomaticPlacement(Object cell,
+                                                                           List<BlockMeta> allowed) {
+        if (!isPowerInputCell(cell)) {
+            return allowed;
+        }
+
+        List<BlockMeta> preferred = new LinkedList<>();
+
+        for (BlockMeta blockMeta : allowed) {
+            if (blockMeta != null && isCreativePowerInput(blockMeta)) {
+                preferred.add(blockMeta);
+            }
+        }
+
+        for (BlockMeta blockMeta : allowed) {
+            if (blockMeta != null && !isCreativePowerInput(blockMeta)) {
+                preferred.add(blockMeta);
+            }
+        }
+
+        return preferred;
+    }
+
+    private static boolean isPowerInputCell(Object cell) {
+        return cell instanceof Character && (Character) cell == 'P';
+    }
+
+    private static List<BlockMeta> getAllowedForSurvivalAutomaticPlacement(List<BlockMeta> allowed) {
+        List<BlockMeta> filtered = new LinkedList<>();
+
+        for (BlockMeta blockMeta : allowed) {
+            if (blockMeta == null) {
+                continue;
+            }
+
+            if (isCreativePowerInput(blockMeta)) {
+                continue;
+            }
+
+            filtered.add(blockMeta);
+        }
+
+        return filtered;
+    }
+
+    private static boolean isCreativePowerInput(BlockMeta blockMeta) {
+        return LibVulpesBlocks.blockCreativeInputPlug != null
+                && blockMeta.getBlock() == LibVulpesBlocks.blockCreativeInputPlug;
+    }
+
+    private static boolean canReplaceForAssembly(World world, BlockPos pos) {
+        IBlockState state = world.getBlockState(pos);
+        Block block = state.getBlock();
+
+        if (world.isAirBlock(pos)) {
+            return true;
+        }
+
+        if (state.getMaterial().isLiquid()) {
+            return isFlowingLiquid(state, block);
+        }
+        return block.isReplaceable(world, pos);
+    }
+
+    private static boolean isFlowingLiquid(IBlockState state, Block block) {
+        if (!state.getMaterial().isLiquid()) {
+            return false;
+        }
+
+        if (block instanceof BlockLiquid && state.getProperties().containsKey(BlockLiquid.LEVEL)) {
+            return state.getValue(BlockLiquid.LEVEL) > 0;
+        }
+
+        return block.getMetaFromState(state) > 0;
     }
 
     private static boolean placeFromInventory(World world,
@@ -157,51 +669,40 @@ public class ItemHoloAssembler extends Item {
             }
 
             Block block = blockMeta.getBlock();
-
             if (block == null || block == Blocks.AIR) {
                 continue;
             }
 
-            int wantedMeta = blockMeta.getMeta();
-            int slot = findInventorySlot(player, block, wantedMeta);
+            if (player.capabilities.isCreativeMode) {
+                IBlockState state = blockMeta.getBlockState();
 
+                if (placeBlockState(world, pos, state)) {
+                    return true;
+                }
+                continue;
+            }
+
+            int slot = findInventorySlot(player, blockMeta);
             if (slot < 0) {
                 continue;
             }
 
             ItemStack stack = player.inventory.getStackInSlot(slot);
-
             if (stack.isEmpty()) {
                 continue;
             }
 
-            int metaToPlace = isWildcardMeta(wantedMeta) ? stack.getMetadata() : wantedMeta;
-
-            IBlockState state;
-
-            try {
-                state = block.getStateFromMeta(metaToPlace);
-            } catch (Exception ignored) {
-                state = block.getDefaultState();
-            }
-
-            if (!world.mayPlace(block, pos, false, EnumFacing.UP, player)) {
+            if (!placeBlock(world, pos, block, stack.getMetadata())) {
                 continue;
             }
 
-            if (!world.setBlockState(pos, state, 3)) {
-                continue;
+            stack.shrink(1);
+
+            if (stack.getCount() <= 0) {
+                player.inventory.setInventorySlotContents(slot, ItemStack.EMPTY);
             }
 
-            if (!player.capabilities.isCreativeMode) {
-                stack.shrink(1);
-
-                if (stack.getCount() <= 0) {
-                    player.inventory.setInventorySlotContents(slot, ItemStack.EMPTY);
-                }
-
-                player.inventory.markDirty();
-            }
+            player.inventory.markDirty();
 
             return true;
         }
@@ -209,7 +710,27 @@ public class ItemHoloAssembler extends Item {
         return false;
     }
 
-    private static int findInventorySlot(EntityPlayer player, Block block, int wantedMeta) {
+    private static boolean placeBlock(World world,
+                                      BlockPos pos,
+                                      Block block,
+                                      int meta) {
+        IBlockState state;
+
+        try {
+            state = block.getStateFromMeta(meta);
+        } catch (Exception ignored) {
+            state = block.getDefaultState();
+        }
+
+        if (!canReplaceForAssembly(world, pos)) {
+            return false;
+        }
+
+        return world.setBlockState(pos, state, 3);
+    }
+
+    private static int findInventorySlot(EntityPlayer player, BlockMeta wantedBlockMeta) {
+        Block block = wantedBlockMeta.getBlock();
         Item wantedItem = Item.getItemFromBlock(block);
 
         if (wantedItem == null || wantedItem == Item.getItemFromBlock(Blocks.AIR)) {
@@ -231,12 +752,22 @@ public class ItemHoloAssembler extends Item {
                 continue;
             }
 
-            if (isWildcardMeta(wantedMeta) || stack.getMetadata() == wantedMeta) {
+            BlockMeta actual = new BlockMeta(block, stack.getMetadata());
+
+            if (wantedBlockMeta.equals(actual)) {
                 return slot;
             }
         }
 
         return -1;
+    }
+
+    private static boolean placeBlockState(World world, BlockPos pos, IBlockState state) {
+        if (!canReplaceForAssembly(world, pos)) {
+            return false;
+        }
+
+        return world.setBlockState(pos, state, 3);
     }
 
     private static BlockPos getControllerOffset(Object[][][] structure) {
@@ -284,18 +815,12 @@ public class ItemHoloAssembler extends Item {
         Block block = state.getBlock();
         int meta = block.getMetaFromState(state);
 
+        BlockMeta actual = new BlockMeta(block, meta);
         for (BlockMeta allowedBlock : allowed) {
             if (allowedBlock == null) {
                 continue;
             }
-
-            if (allowedBlock.getBlock() != block) {
-                continue;
-            }
-
-            int allowedMeta = allowedBlock.getMeta();
-
-            if (allowedMeta == meta || isWildcardMeta(allowedMeta)) {
+            if (allowedBlock.equals(actual)) {
                 return true;
             }
         }
@@ -317,21 +842,332 @@ public class ItemHoloAssembler extends Item {
         return true;
     }
 
+    @Override
+    @Nonnull
+    public ActionResult<ItemStack> onItemRightClick(World world,
+                                                    EntityPlayer player,
+                                                    EnumHand hand) {
+        ItemStack stack = player.getHeldItem(hand);
+
+        if (player.isSneaking()) {
+            if (!world.isRemote) {
+                player.openGui(
+                        LibVulpes.instance,
+                        GuiHandler.guiId.MODULARNOINV.ordinal(),
+                        world,
+                        -1,
+                        -1,
+                        0
+                );
+            }
+
+            return new ActionResult<>(EnumActionResult.SUCCESS, stack);
+        }
+
+        return new ActionResult<>(EnumActionResult.PASS, stack);
+    }
+
     private static boolean isWildcardMeta(int meta) {
         return meta == Short.MAX_VALUE || meta == 32767 || meta == -1;
     }
 
-    private static void send(EntityPlayer player, String message) {
-        player.sendMessage(new TextComponentString("[Holo-Assembler] " + message));
+    private static void addCouldNotPlace(Map<String, Integer> map, List<BlockMeta> allowed) {
+        String name = getDisplayNameForAllowedBlock(allowed);
+        map.put(name, map.getOrDefault(name, 0) + 1);
+    }
+
+    private static String getDisplayNameForAllowedBlock(List<BlockMeta> allowed) {
+        List<BlockMeta> preferredAllowed = getAllowedForSurvivalAutomaticPlacement(allowed);
+
+        if (!preferredAllowed.isEmpty()) {
+            allowed = preferredAllowed;
+        }
+
+        for (BlockMeta blockMeta : allowed) {
+            if (blockMeta == null) {
+                continue;
+            }
+
+            Block block = blockMeta.getBlock();
+
+            if (block == null || block == Blocks.AIR) {
+                continue;
+            }
+
+            Item item = Item.getItemFromBlock(block);
+
+            if (item == null || item == Item.getItemFromBlock(Blocks.AIR)) {
+                return simplifyFeedbackName(block.getLocalizedName());
+            }
+
+            int meta = blockMeta.getMeta();
+            int displayMeta = isWildcardMeta(meta) ? 0 : meta;
+
+            return simplifyFeedbackName(new ItemStack(item, 1, displayMeta).getDisplayName());
+        }
+
+        return tr(LANG_MSG_UNKNOWN_BLOCK);
+    }
+
+    private static String formatCouldNotPlace(Map<String, Integer> map) {
+        StringJoiner joiner = new StringJoiner(", ");
+
+        for (Map.Entry<String, Integer> entry : map.entrySet()) {
+            joiner.add(entry.getKey() + " x" + entry.getValue());
+        }
+
+        return joiner.toString();
+    }
+
+    private static String formatActiveSources(boolean inventory, boolean emc, boolean me) {
+        StringJoiner joiner = new StringJoiner(" > ");
+
+        if (inventory) {
+            joiner.add("Inventory");
+        }
+
+        if (emc) {
+            joiner.add("EMC");
+        }
+
+        if (me) {
+            joiner.add("ME");
+        }
+
+        String result = joiner.toString();
+        return result.isEmpty() ? "None" : result;
+    }
+
+    private static void send(EntityPlayer player, String langKey, Object... args) {
+        player.sendMessage(new TextComponentTranslation(langKey, args));
+    }
+
+    private static boolean useInventory(ItemStack stack) {
+        NBTTagCompound tag = stack.getTagCompound();
+
+        if (tag == null || !tag.hasKey(NBT_USE_INVENTORY)) {
+            return true;
+        }
+
+        return tag.getBoolean(NBT_USE_INVENTORY);
+    }
+
+    private static void setUseInventory(ItemStack stack, boolean value) {
+        getOrCreateTag(stack).setBoolean(NBT_USE_INVENTORY, value);
+    }
+
+    private static boolean useEmc(ItemStack stack) {
+        NBTTagCompound tag = stack.getTagCompound();
+        return tag != null && tag.getBoolean(NBT_USE_EMC);
+    }
+
+    private static void setUseEmc(ItemStack stack, boolean value) {
+        getOrCreateTag(stack).setBoolean(NBT_USE_EMC, value);
+    }
+
+    private static boolean useMe(ItemStack stack) {
+        NBTTagCompound tag = stack.getTagCompound();
+        return tag != null && tag.getBoolean(NBT_USE_ME);
+    }
+
+    private static void setUseMe(ItemStack stack, boolean value) {
+        getOrCreateTag(stack).setBoolean(NBT_USE_ME, value);
+    }
+
+    private static boolean isDebugEnabled(ItemStack stack) {
+        NBTTagCompound tag = stack.getTagCompound();
+        return tag != null && tag.getBoolean(NBT_DEBUG);
+    }
+
+    private static void setDebugEnabled(ItemStack stack, boolean value) {
+        getOrCreateTag(stack).setBoolean(NBT_DEBUG, value);
+    }
+
+    private static NBTTagCompound getOrCreateTag(ItemStack stack) {
+        NBTTagCompound tag = stack.getTagCompound();
+
+        if (tag == null) {
+            tag = new NBTTagCompound();
+            stack.setTagCompound(tag);
+        }
+
+        return tag;
+    }
+
+    private static boolean isEmcAvailable() {
+        return ProjectECompat.isEnabled();
+    }
+
+    private static boolean isMeAvailable() {
+        return AE2Compat.isEnabled();
     }
 
     @Override
-    public void addInformation(ItemStack stack,
-                               @Nullable World world,
-                               List<String> tooltip,
-                               ITooltipFlag flag) {
-        tooltip.add(I18n.format("item.holoassemblerar.holo_assembler.tooltip"));
-        tooltip.add(I18n.format("item.holoassemblerar.holo_assembler.tooltip.preview"));
-        tooltip.add(I18n.format("item.holoassemblerar.holo_assembler.tooltip.sneak"));
+    public void writeDataToNetwork(ByteBuf out, byte id, @Nonnull ItemStack stack) {
+        if (id == PACKET_SETTINGS) {
+            out.writeBoolean(useInventory(stack));
+            out.writeBoolean(useEmc(stack));
+            out.writeBoolean(useMe(stack));
+            out.writeBoolean(isDebugEnabled(stack));
+        }
+    }
+
+    @Override
+    public void readDataFromNetwork(ByteBuf in, byte packetId, NBTTagCompound nbt, @Nonnull ItemStack stack) {
+        if (packetId == PACKET_SETTINGS) {
+            nbt.setBoolean(NBT_USE_INVENTORY, in.readBoolean());
+            nbt.setBoolean(NBT_USE_EMC, in.readBoolean());
+            nbt.setBoolean(NBT_USE_ME, in.readBoolean());
+            nbt.setBoolean(NBT_DEBUG, in.readBoolean());
+        }
+    }
+
+    private static String simplifyFeedbackName(String name) {
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
+
+        String lowerName = name.toLowerCase(Locale.ROOT);
+
+        if (lowerName.endsWith(" hatch")) {
+            return name.substring(0, name.length() - " hatch".length()).trim();
+        }
+
+        if (lowerName.endsWith(" plug")) {
+            return name.substring(0, name.length() - " plug".length()).trim();
+        }
+
+        return name;
+    }
+
+    @Override
+    public void useNetworkData(EntityPlayer player, Side side, byte id, NBTTagCompound nbt, @Nonnull ItemStack stack) {
+        if (side != Side.SERVER) {
+            return;
+        }
+        if (id == PACKET_SETTINGS) {
+            setUseInventory(stack, nbt.getBoolean(NBT_USE_INVENTORY));
+
+            if (isEmcAvailable()) {
+                setUseEmc(stack, nbt.getBoolean(NBT_USE_EMC));
+            } else {
+                setUseEmc(stack, false);
+            }
+
+            if (isMeAvailable()) {
+                setUseMe(stack, nbt.getBoolean(NBT_USE_ME));
+            } else {
+                setUseMe(stack, false);
+            }
+
+            if (HoloAssemblerConfig.enableDebugMode) {
+                setDebugEnabled(stack, nbt.getBoolean(NBT_DEBUG));
+            } else {
+                setDebugEnabled(stack, false);
+            }
+        }
+    }
+
+    private static class ModuleStaticStarryPanel extends ModuleContainerPan {
+
+        public ModuleStaticStarryPanel(int offsetX,
+                                       int offsetY,
+                                       List<ModuleBase> moduleList,
+                                       List<ModuleBase> staticModules,
+                                       net.minecraft.util.ResourceLocation backdrop,
+                                       int screenSizeX,
+                                       int screenSizeY,
+                                       int paddingX,
+                                       int paddingY) {
+            super(offsetX, offsetY, moduleList, staticModules, backdrop, screenSizeX, screenSizeY, paddingX, paddingY);
+        }
+
+        @Override
+        public void onScroll(int dwheel) {
+            // Disabled: keep starry background and contents fixed.
+        }
+
+        @Override
+        protected void moveContainerInterior(int deltaX, int deltaY) {
+            // Disabled: prevent dragging/panning from moving contents.
+        }
+
+        @Override
+        public void onMouseClickedAndDragged(int x, int y, int button, long timeSinceLastClick) {
+            // Disabled: prevent mouse-drag panning.
+        }
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void addInformation(ItemStack stack, @Nullable World world, List tooltip, ITooltipFlag flag) {
+        tooltip.add(
+                TextFormatting.GRAY + I18n.format("tooltip.holoassemblerar.sources")
+                        + " "
+                        + getColoredSourcePriorityText(stack)
+        );
+
+        if (isMeAvailable()) {
+            tooltip.add(
+                    TextFormatting.AQUA + I18n.format("tooltip.holoassemblerar.me_link")
+                            + " "
+                            + TextFormatting.WHITE
+                            + I18n.format(
+                            AE2Compat.getLinkStatusLangKey(stack),
+                            AE2Compat.getLinkStatusLangArgs(stack)
+                    )
+            );
+        }
+
+        tooltip.add(TextFormatting.GRAY + I18n.format("tooltip.holoassemblerar.description"));
+        tooltip.add(TextFormatting.YELLOW + I18n.format("tooltip.holoassemblerar.use.assemble"));
+        tooltip.add(TextFormatting.GOLD + I18n.format("tooltip.holoassemblerar.use.settings"));
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static String getColoredSourcePriorityText(ItemStack stack) {
+        StringJoiner joiner = new StringJoiner(
+                TextFormatting.DARK_GRAY + " " + I18n.format("tooltip.holoassemblerar.source_separator") + " " + TextFormatting.RESET
+        );
+
+        if (useInventory(stack)) {
+            joiner.add(TextFormatting.GREEN + I18n.format(LANG_GUI_SOURCE_INVENTORY));
+        }
+
+        if (useEmc(stack) && isEmcAvailable()) {
+            joiner.add(TextFormatting.GREEN + I18n.format(LANG_GUI_SOURCE_EMC));
+        }
+
+        if (useMe(stack) && isMeAvailable()) {
+            joiner.add(TextFormatting.GREEN + I18n.format(LANG_GUI_SOURCE_ME));
+        }
+
+        String text = joiner.toString();
+
+        if (text.isEmpty()) {
+            return TextFormatting.DARK_GRAY + I18n.format("tooltip.holoassemblerar.sources.none");
+        }
+
+        return text;
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static String getLocalizedSourcePriorityText(ItemStack stack) {
+        StringJoiner joiner = new StringJoiner(" " + I18n.format("tooltip.holoassemblerar.source_separator") + " ");
+
+        if (useInventory(stack)) {
+            joiner.add(I18n.format(LANG_GUI_SOURCE_INVENTORY));
+        }
+
+        if (useEmc(stack) && isEmcAvailable()) {
+            joiner.add(I18n.format(LANG_GUI_SOURCE_EMC));
+        }
+
+        if (useMe(stack) && isMeAvailable()) {
+            joiner.add(I18n.format(LANG_GUI_SOURCE_ME));
+        }
+
+        String text = joiner.toString();
+        return text.isEmpty() ? I18n.format("tooltip.holoassemblerar.sources.none") : text;
     }
 }

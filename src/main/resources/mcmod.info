@@ -8,12 +8,14 @@
     "url": "",
     "updateUrl": "",
     "authorList": ["kaduvill"],
-    "credits": "Advanced Rocketry and LibVulpes by zmaster587. Inspired by the holo-projector workflow.",
+    "credits": "Advanced Rocketry and LibVulpes by zmaster587",
     "logoFile": "",
     "screenshots": [],
     "dependencies": [
       "required-after:libvulpes",
-      "required-after:advancedrocketry"
+      "required-after:advancedrocketry",
+      "after:projecte",
+      "after:appliedenergistics2"
     ]
   }
 ]
