@@ -162,16 +162,20 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         String text = getButtonText(enabled);
 
         if (isClient) {
-            return new ModuleHoloAssemblerToggleButton(
+            ModuleButton button = new ModuleHoloAssemblerToggleButton(
                     x,
                     y,
                     buttonId,
                     text,
                     this
             );
+            button.setColor(enabled ? COLOR_ON : COLOR_OFF);
+            button.setBGColor(enabled ? BUTTON_BG_SELECTED : BUTTON_BG_NORMAL);
+
+            return button;
         }
 
-        ModuleButton button = new ModuleButton(
+        return new ModuleButton(
                 x,
                 y,
                 buttonId,
@@ -179,11 +183,6 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                 this,
                 TextureResources.buttonBuild
         );
-
-        button.setColor(enabled ? COLOR_ON : COLOR_OFF);
-        button.setBGColor(enabled ? BUTTON_BG_SELECTED : BUTTON_BG_NORMAL);
-
-        return button;
     }
 
     private static String getButtonText(boolean enabled) {
@@ -1123,7 +1122,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
 
     @SideOnly(Side.CLIENT)
     private static String getLocalizedSourcePriorityText(ItemStack stack) {
-        StringJoiner joiner = new StringJoiner(I18n.format("tooltip.holoassemblerar.source_separator"));
+        StringJoiner joiner = new StringJoiner(" " + I18n.format("tooltip.holoassemblerar.source_separator") + " ");
 
         if (useInventory(stack)) {
             joiner.add(I18n.format(LANG_GUI_SOURCE_INVENTORY));
