@@ -79,19 +79,38 @@ public final class AE2Compat {
         return tag != null && !tag.getString(NBT_ENCRYPTION_KEY).isEmpty();
     }
 
-    public static String getLinkText(ItemStack stack) {
+    public static String getLinkStatusLangKey(ItemStack stack) {
+        if (!hasLink(stack)) {
+            return "tooltip.holoassemblerar.me_link.not_linked";
+        }
+
+        String name = getLinkName(stack);
+
+        if (name.isEmpty()) {
+            return "tooltip.holoassemblerar.me_link.linked";
+        }
+
+        return "tooltip.holoassemblerar.me_link.named";
+    }
+
+    public static Object[] getLinkStatusLangArgs(ItemStack stack) {
+        String name = getLinkName(stack);
+
+        if (!hasLink(stack) || name.isEmpty()) {
+            return new Object[0];
+        }
+
+        return new Object[] { name };
+    }
+
+    public static String getLinkName(ItemStack stack) {
         NBTTagCompound tag = stack.getTagCompound();
 
-        if (tag == null || tag.getString(NBT_ENCRYPTION_KEY).isEmpty()) {
-            return "Not linked";
+        if (tag == null) {
+            return "";
         }
 
         String name = tag.getString(NBT_NAME);
-
-        if (name == null || name.isEmpty()) {
-            return "Linked";
-        }
-
-        return name;
+        return name == null ? "" : name;
     }
 }

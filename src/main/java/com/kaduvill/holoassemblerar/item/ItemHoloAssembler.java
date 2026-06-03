@@ -24,7 +24,7 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -64,6 +64,23 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
 
     private static final byte PACKET_SETTINGS = 0;
 
+    private static final String LANG_GUI_SOURCE_INVENTORY = "gui.holoassemblerar.source.inventory";
+    private static final String LANG_GUI_SOURCE_EMC = "gui.holoassemblerar.source.emc";
+    private static final String LANG_GUI_SOURCE_ME = "gui.holoassemblerar.source.me";
+    private static final String LANG_GUI_SOURCE_DEBUG = "gui.holoassemblerar.source.debug";
+    private static final String LANG_GUI_BUTTON_ON = "gui.holoassemblerar.button.on";
+    private static final String LANG_GUI_BUTTON_OFF = "gui.holoassemblerar.button.off";
+
+    private static final String LANG_MSG_NO_STRUCTURE = "message.holoassemblerar.no_structure";
+    private static final String LANG_MSG_NO_CONTROLLER = "message.holoassemblerar.no_controller_marker";
+    private static final String LANG_MSG_STRUCTURE_COMPLETE = "message.holoassemblerar.structure_complete";
+    private static final String LANG_MSG_STRUCTURE_COMPLETE_DEBUG = "message.holoassemblerar.structure_complete.debug";
+    private static final String LANG_MSG_ASSEMBLY_COMPLETE = "message.holoassemblerar.assembly_complete";
+    private static final String LANG_MSG_ASSEMBLY_COMPLETE_DEBUG = "message.holoassemblerar.assembly_complete.debug";
+    private static final String LANG_MSG_COULD_NOT_PLACE = "message.holoassemblerar.could_not_place";
+    private static final String LANG_MSG_COULD_NOT_PLACE_DEBUG = "message.holoassemblerar.could_not_place.debug";
+    private static final String LANG_MSG_UNKNOWN_BLOCK = "message.holoassemblerar.unknown_block";
+
     private static final int BTN_INVENTORY = 0;
     private static final int BTN_EMC = 1;
     private static final int BTN_ME = 2;
@@ -101,24 +118,24 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
 
         int y = FIRST_ROW_Y;
 
-        panelModules.add(new ModuleText(LABEL_X, y + 4, "Inventory", TEXT_COLOR));
+        panelModules.add(new ModuleText(LABEL_X, y + 4, tr(LANG_GUI_SOURCE_INVENTORY), TEXT_COLOR));
         panelModules.add(makeToggleButton(BTN_INVENTORY, BUTTON_X, y, useInventory(stack), isClient));
         y += ROW_SPACING;
 
         if (isEmcAvailable()) {
-            panelModules.add(new ModuleText(LABEL_X, y + 4, "EMC", TEXT_COLOR));
+            panelModules.add(new ModuleText(LABEL_X, y + 4, tr(LANG_GUI_SOURCE_EMC), TEXT_COLOR));
             panelModules.add(makeToggleButton(BTN_EMC, BUTTON_X, y, useEmc(stack), isClient));
             y += ROW_SPACING;
         }
 
         if (isMeAvailable()) {
-            panelModules.add(new ModuleText(LABEL_X, y + 4, "ME", TEXT_COLOR));
+            panelModules.add(new ModuleText(LABEL_X, y + 4, tr(LANG_GUI_SOURCE_ME), TEXT_COLOR));
             panelModules.add(makeToggleButton(BTN_ME, BUTTON_X, y, useMe(stack), isClient));
             y += ROW_SPACING;
         }
 
         if (HoloAssemblerConfig.enableDebugMode) {
-            panelModules.add(new ModuleText(LABEL_X, y + 4, "Debug", TEXT_COLOR));
+            panelModules.add(new ModuleText(LABEL_X, y + 4, tr(LANG_GUI_SOURCE_DEBUG), TEXT_COLOR));
             panelModules.add(makeToggleButton(BTN_DEBUG, BUTTON_X, y, isDebugEnabled(stack), isClient));
         }
 
@@ -170,7 +187,11 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
     }
 
     private static String getButtonText(boolean enabled) {
-        return enabled ? "ON" : "OFF";
+        return tr(enabled ? LANG_GUI_BUTTON_ON : LANG_GUI_BUTTON_OFF);
+    }
+
+    private static String tr(String key) {
+        return LibVulpes.proxy.getLocalizedString(key);
     }
 
     private static class ModuleHoloAssemblerToggleButton extends ModuleButton {
@@ -344,14 +365,14 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         Object[][][] structure = multiblock.getStructure();
 
         if (structure == null) {
-            send(player, "No structure found.");
+            send(player, LANG_MSG_NO_STRUCTURE);
             return EnumActionResult.FAIL;
         }
 
         BlockPos offset = getControllerOffset(structure);
 
         if (offset == null) {
-            send(player, "No controller marker found in structure.");
+            send(player, LANG_MSG_NO_CONTROLLER);
             return EnumActionResult.FAIL;
         }
 
@@ -471,37 +492,45 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         if (remainingIncorrect == 0) {
             if (placed == 0) {
                 if (debugOutput) {
-                    send(player, "Structure complete. All required blocks are already correct."
-                            + " Already valid=" + alreadyValid
-                            + ", ignored=" + ignored
-                            + ", active sources=" + formatActiveSources(useInventorySource, useEmcSource, useMeSource)
-                            + ".");
+                    send(
+                            player,
+                            LANG_MSG_STRUCTURE_COMPLETE_DEBUG,
+                            alreadyValid,
+                            ignored,
+                            formatActiveSources(useInventorySource, useEmcSource, useMeSource)
+                    );
                 } else {
-                    send(player, "Structure complete. All required blocks are already correct.");
+                    send(player, LANG_MSG_STRUCTURE_COMPLETE);
                 }
             } else {
                 if (debugOutput) {
-                    send(player, "Assembly complete. Placed=" + placed
-                            + formatSourcePlacedPart("EMC", emcPlaced, useEmcSource)
-                            + formatSourcePlacedPart("ME", mePlaced, useMeSource)
-                            + ". All required blocks are now correct.");
+                    send(
+                            player,
+                            LANG_MSG_ASSEMBLY_COMPLETE_DEBUG,
+                            placed,
+                            emcPlaced,
+                            mePlaced
+                    );
                 } else {
-                    send(player, "Assembly complete. All required blocks are now correct.");
+                    send(player, LANG_MSG_ASSEMBLY_COMPLETE);
                 }
             }
         } else {
             if (debugOutput) {
-                send(player, "Could not place: " + formatCouldNotPlace(stillIncorrect)
-                        + ". Placed=" + placed
-                        + formatSourcePlacedPart("EMC", emcPlaced, useEmcSource)
-                        + formatSourcePlacedPart("ME", mePlaced, useMeSource)
-                        + ", still incorrect=" + remainingIncorrect
-                        + ", blocked=" + blocked
-                        + ", missing sources=" + missingItems
-                        + ", active sources=" + formatActiveSources(useInventorySource, useEmcSource, useMeSource)
-                        + ".");
+                send(
+                        player,
+                        LANG_MSG_COULD_NOT_PLACE_DEBUG,
+                        formatCouldNotPlace(stillIncorrect),
+                        placed,
+                        emcPlaced,
+                        mePlaced,
+                        remainingIncorrect,
+                        blocked,
+                        missingItems,
+                        formatActiveSources(useInventorySource, useEmcSource, useMeSource)
+                );
             } else {
-                send(player, "Could not place: " + formatCouldNotPlace(stillIncorrect) + ".");
+                send(player, LANG_MSG_COULD_NOT_PLACE, formatCouldNotPlace(stillIncorrect));
             }
         }
 
@@ -877,7 +906,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             return simplifyFeedbackName(new ItemStack(item, 1, displayMeta).getDisplayName());
         }
 
-        return "Unknown block";
+        return tr(LANG_MSG_UNKNOWN_BLOCK);
     }
 
     private static String formatCouldNotPlace(Map<String, Integer> map) {
@@ -888,14 +917,6 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         }
 
         return joiner.toString();
-    }
-
-    private static String formatSourcePlacedPart(String sourceName, int placed, boolean sourceAvailable) {
-        if (!sourceAvailable || placed <= 0) {
-            return "";
-        }
-
-        return ", " + sourceName + " placed=" + placed;
     }
 
     private static String formatActiveSources(boolean inventory, boolean emc, boolean me) {
@@ -917,8 +938,8 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         return result.isEmpty() ? "None" : result;
     }
 
-    private static void send(EntityPlayer player, String message) {
-        player.sendMessage(new TextComponentString("[Holo-Assembler] " + message));
+    private static void send(EntityPlayer player, String langKey, Object... args) {
+        player.sendMessage(new TextComponentTranslation(langKey, args));
     }
 
     private static boolean useInventory(ItemStack stack) {
@@ -1077,30 +1098,46 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         }
     }
 
-    private static String getSourcePriorityText(ItemStack stack) {
-        StringJoiner joiner = new StringJoiner(" > ");
-        if (useInventory(stack)) {
-            joiner.add("Inventory");
-        }
-        if (useEmc(stack) && isEmcAvailable()) {
-            joiner.add("EMC");
-        }
-        if (useMe(stack) && isMeAvailable()) {
-            joiner.add("ME");
-        }
-        String text = joiner.toString();
-        return text.isEmpty() ? "None" : text;
-    }
-
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, @Nullable World world, List tooltip, ITooltipFlag flag) {
-        tooltip.add("Sources: " + getSourcePriorityText(stack));
+        tooltip.add(I18n.format(
+                "tooltip.holoassemblerar.sources",
+                getLocalizedSourcePriorityText(stack)
+        ));
+
         if (isMeAvailable()) {
-            tooltip.add("ME Link: " + AE2Compat.getLinkText(stack));
+            tooltip.add(I18n.format(
+                    "tooltip.holoassemblerar.me_link",
+                    I18n.format(
+                            AE2Compat.getLinkStatusLangKey(stack),
+                            AE2Compat.getLinkStatusLangArgs(stack)
+                    )
+            ));
         }
-        tooltip.add(I18n.format("item.holoassemblerar.holo_assembler.tooltip"));
-        tooltip.add("Right-click controller to assemble.");
-        tooltip.add("Sneak-right-click to open settings.");
+
+        tooltip.add(I18n.format("tooltip.holoassemblerar.description"));
+        tooltip.add(I18n.format("tooltip.holoassemblerar.use.assemble"));
+        tooltip.add(I18n.format("tooltip.holoassemblerar.use.settings"));
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static String getLocalizedSourcePriorityText(ItemStack stack) {
+        StringJoiner joiner = new StringJoiner(I18n.format("tooltip.holoassemblerar.source_separator"));
+
+        if (useInventory(stack)) {
+            joiner.add(I18n.format(LANG_GUI_SOURCE_INVENTORY));
+        }
+
+        if (useEmc(stack) && isEmcAvailable()) {
+            joiner.add(I18n.format(LANG_GUI_SOURCE_EMC));
+        }
+
+        if (useMe(stack) && isMeAvailable()) {
+            joiner.add(I18n.format(LANG_GUI_SOURCE_ME));
+        }
+
+        String text = joiner.toString();
+        return text.isEmpty() ? I18n.format("tooltip.holoassemblerar.sources.none") : text;
     }
 }
