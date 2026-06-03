@@ -25,6 +25,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -1100,24 +1101,54 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, @Nullable World world, List tooltip, ITooltipFlag flag) {
-        tooltip.add(I18n.format(
-                "tooltip.holoassemblerar.sources",
-                getLocalizedSourcePriorityText(stack)
-        ));
+        tooltip.add(
+                TextFormatting.GRAY + I18n.format("tooltip.holoassemblerar.sources")
+                        + " "
+                        + getColoredSourcePriorityText(stack)
+        );
 
         if (isMeAvailable()) {
-            tooltip.add(I18n.format(
-                    "tooltip.holoassemblerar.me_link",
-                    I18n.format(
+            tooltip.add(
+                    TextFormatting.AQUA + I18n.format("tooltip.holoassemblerar.me_link")
+                            + " "
+                            + TextFormatting.WHITE
+                            + I18n.format(
                             AE2Compat.getLinkStatusLangKey(stack),
                             AE2Compat.getLinkStatusLangArgs(stack)
                     )
-            ));
+            );
         }
 
-        tooltip.add(I18n.format("tooltip.holoassemblerar.description"));
-        tooltip.add(I18n.format("tooltip.holoassemblerar.use.assemble"));
-        tooltip.add(I18n.format("tooltip.holoassemblerar.use.settings"));
+        tooltip.add(TextFormatting.GRAY + I18n.format("tooltip.holoassemblerar.description"));
+        tooltip.add(TextFormatting.YELLOW + I18n.format("tooltip.holoassemblerar.use.assemble"));
+        tooltip.add(TextFormatting.GOLD + I18n.format("tooltip.holoassemblerar.use.settings"));
+    }
+
+    @SideOnly(Side.CLIENT)
+    private static String getColoredSourcePriorityText(ItemStack stack) {
+        StringJoiner joiner = new StringJoiner(
+                TextFormatting.DARK_GRAY + " " + I18n.format("tooltip.holoassemblerar.source_separator") + " " + TextFormatting.RESET
+        );
+
+        if (useInventory(stack)) {
+            joiner.add(TextFormatting.GREEN + I18n.format(LANG_GUI_SOURCE_INVENTORY));
+        }
+
+        if (useEmc(stack) && isEmcAvailable()) {
+            joiner.add(TextFormatting.GREEN + I18n.format(LANG_GUI_SOURCE_EMC));
+        }
+
+        if (useMe(stack) && isMeAvailable()) {
+            joiner.add(TextFormatting.GREEN + I18n.format(LANG_GUI_SOURCE_ME));
+        }
+
+        String text = joiner.toString();
+
+        if (text.isEmpty()) {
+            return TextFormatting.DARK_GRAY + I18n.format("tooltip.holoassemblerar.sources.none");
+        }
+
+        return text;
     }
 
     @SideOnly(Side.CLIENT)

@@ -1,12 +1,12 @@
 item.holoassemblerar.holo_assembler.name=Holo-Assembler
-tooltip.holoassemblerar.description=Builds Advanced Rocketry multiblock structures from available block sources.
-tooltip.holoassemblerar.sources=Sources: %s
-tooltip.holoassemblerar.sources.none=None
-tooltip.holoassemblerar.source_separator=>
-tooltip.holoassemblerar.me_link=ME Link: %s
 tooltip.holoassemblerar.me_link.not_linked=Not linked
 tooltip.holoassemblerar.me_link.linked=Linked
 tooltip.holoassemblerar.me_link.named=%s
+tooltip.holoassemblerar.sources=Sources:
+tooltip.holoassemblerar.sources.none=None
+tooltip.holoassemblerar.source_separator=>
+tooltip.holoassemblerar.me_link=ME Link:
+tooltip.holoassemblerar.description=Builds Advanced Rocketry multiblock structures from available block sources.
 tooltip.holoassemblerar.use.assemble=Right-click controller to assemble.
 tooltip.holoassemblerar.use.settings=Sneak-right-click to open settings.
 
