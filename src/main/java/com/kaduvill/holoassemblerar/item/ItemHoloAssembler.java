@@ -96,30 +96,30 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         List<ModuleBase> modules = new LinkedList<>();
         List<ModuleBase> panelModules = new LinkedList<>();
 
-        ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
+        ItemStack stack = player == null ? ItemStack.EMPTY : player.getHeldItem(EnumHand.MAIN_HAND);
         boolean isClient = player != null && player.world.isRemote;
 
         int y = FIRST_ROW_Y;
 
         panelModules.add(new ModuleText(LABEL_X, y + 4, "Inventory", TEXT_COLOR));
-        panelModules.add(makeToggleButton(BTN_INVENTORY, BUTTON_X, y, useInventory(stack), "Inventory", isClient));
+        panelModules.add(makeToggleButton(BTN_INVENTORY, BUTTON_X, y, useInventory(stack), isClient));
         y += ROW_SPACING;
 
         if (isEmcAvailable()) {
             panelModules.add(new ModuleText(LABEL_X, y + 4, "EMC", TEXT_COLOR));
-            panelModules.add(makeToggleButton(BTN_EMC, BUTTON_X, y, useEmc(stack), "EMC", isClient));
+            panelModules.add(makeToggleButton(BTN_EMC, BUTTON_X, y, useEmc(stack), isClient));
             y += ROW_SPACING;
         }
 
         if (isMeAvailable()) {
             panelModules.add(new ModuleText(LABEL_X, y + 4, "ME", TEXT_COLOR));
-            panelModules.add(makeToggleButton(BTN_ME, BUTTON_X, y, useMe(stack), "ME", isClient));
+            panelModules.add(makeToggleButton(BTN_ME, BUTTON_X, y, useMe(stack), isClient));
             y += ROW_SPACING;
         }
 
         if (HoloAssemblerConfig.enableDebugMode) {
             panelModules.add(new ModuleText(LABEL_X, y + 4, "Debug", TEXT_COLOR));
-            panelModules.add(makeToggleButton(BTN_DEBUG, BUTTON_X, y, isDebugEnabled(stack), "Debug", isClient));
+            panelModules.add(makeToggleButton(BTN_DEBUG, BUTTON_X, y, isDebugEnabled(stack), isClient));
         }
 
         modules.add(new ModuleStaticStarryPanel(
@@ -141,14 +141,15 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                                           int x,
                                           int y,
                                           boolean enabled,
-                                          String label,
                                           boolean isClient) {
+        String text = getButtonText(enabled);
+
         if (isClient) {
             return new ModuleHoloAssemblerToggleButton(
                     x,
                     y,
                     buttonId,
-                    label,
+                    text,
                     this
             );
         }
@@ -157,7 +158,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                 x,
                 y,
                 buttonId,
-                getButtonText(enabled),
+                text,
                 this,
                 TextureResources.buttonBuild
         );
@@ -172,8 +173,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         return enabled ? "ON" : "OFF";
     }
 
-    @SideOnly(Side.CLIENT)
-    private class ModuleHoloAssemblerToggleButton extends ModuleButton {
+    private static class ModuleHoloAssemblerToggleButton extends ModuleButton {
 
         public ModuleHoloAssemblerToggleButton(int offsetX,
                                                int offsetY,
@@ -197,17 +197,18 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             }
 
             EntityPlayer player = Minecraft.getMinecraft().player;
-
             if (player == null) {
                 return;
             }
 
             ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
-
             boolean enabled = getToggleState(stack);
 
+            String text = getButtonText(enabled);
+            setText(text);
+
             if (button != null) {
-                button.displayString = getButtonText(enabled);
+                button.displayString = text;
             }
 
             setColor(enabled ? COLOR_ON : COLOR_OFF);
@@ -217,8 +218,11 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         }
 
         private boolean getToggleState(ItemStack stack) {
-            switch (buttonId) {
+            if (stack.isEmpty() || !(stack.getItem() instanceof ItemHoloAssembler)) {
+                return false;
+            }
 
+            switch (buttonId) {
                 case BTN_INVENTORY:
                     return useInventory(stack);
 
@@ -234,10 +238,6 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                 default:
                     return false;
             }
-        }
-
-        private String getButtonText(boolean enabled) {
-            return ItemHoloAssembler.getButtonText(enabled);
         }
     }
 
@@ -1021,6 +1021,9 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
 
     @Override
     public void useNetworkData(EntityPlayer player, Side side, byte id, NBTTagCompound nbt, @Nonnull ItemStack stack) {
+        if (side != Side.SERVER) {
+            return;
+        }
         if (id == PACKET_SETTINGS) {
             setUseInventory(stack, nbt.getBoolean(NBT_USE_INVENTORY));
 
@@ -1090,10 +1093,8 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
     }
 
     @Override
-    public void addInformation(ItemStack stack,
-                               @Nullable World world,
-                               List<String> tooltip,
-                               ITooltipFlag flag) {
+    @SideOnly(Side.CLIENT)
+    public void addInformation(ItemStack stack, @Nullable World world, List tooltip, ITooltipFlag flag) {
         tooltip.add("Sources: " + getSourcePriorityText(stack));
         if (isMeAvailable()) {
             tooltip.add("ME Link: " + AE2Compat.getLinkText(stack));
