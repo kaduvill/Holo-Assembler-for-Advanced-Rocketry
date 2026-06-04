@@ -1,0 +1,30 @@
+item.holoassemblerar.holo_assembler.name=全息组装器
+tooltip.holoassemblerar.me_link.not_linked=未链接
+tooltip.holoassemblerar.me_link.linked=已链接
+tooltip.holoassemblerar.me_link.named=%s
+tooltip.holoassemblerar.sources=材料源：
+tooltip.holoassemblerar.sources.none=无 
+tooltip.holoassemblerar.source_separator=>
+tooltip.holoassemblerar.me_link=ME链接：
+tooltip.holoassemblerar.description=从可用材料源构建高级火箭的多方块结构。
+tooltip.holoassemblerar.use.assemble=右键点击控制器进行组装。
+tooltip.holoassemblerar.use.settings=潜行右键点击控制器打开设置。
+
+gui.holoassemblerar.source.inventory=物品栏
+gui.holoassemblerar.source.emc=EMC
+gui.holoassemblerar.source.me=ME
+gui.holoassemblerar.source.debug=调试
+gui.holoassemblerar.button.on=开
+gui.holoassemblerar.button.off=关
+
+message.holoassemblerar.no_structure=[全息组装器] 没有找到结构。
+message.holoassemblerar.no_controller_marker=[全息组装器] 结构中未找到控制器标记。
+message.holoassemblerar.structure_complete=[全息组装器] 结构完整。所有需要的方块都已正确。
+message.holoassemblerar.structure_complete.debug=[全息组装器] 结构完整。所有需要的方块都已正确。有效=%s，忽略=%s，激活的材料源=%s。
+message.holoassemblerar.assembly_complete=[全息组装器] 组装完成。所有需要的方块现已正确。
+message.holoassemblerar.assembly_complete.debug=[全息组装器] 组装完成。已放置=%s，EMC放置=%s，ME放置=%s。所有需要的方块现已正确。
+message.holoassemblerar.could_not_place=[全息组装器] 无法放置：%s。
+message.holoassemblerar.could_not_place.debug=[全息组装器] 无法放置：%s。已放置=%s，EMC放置=%s，ME放置=%s，仍不正确=%s，被阻挡=%s，缺少材料源=%s，激活的材料源=%s。
+message.holoassemblerar.unknown_block=未知方块
+
+itemGroup.holoassemblerar=全息组装器（高级火箭）
