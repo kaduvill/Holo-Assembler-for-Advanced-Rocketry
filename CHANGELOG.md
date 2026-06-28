@@ -1,3 +1,8 @@
+0.5.0
+- Sneak + Right click assemblers to open the pad builderGUI
+  - full GUI with L/W/H dimension selection for pad
+  - Preview with ghost-blocks and red frame
+    
 0.4.1
 - Chinese translation (thanks ZY)
 
