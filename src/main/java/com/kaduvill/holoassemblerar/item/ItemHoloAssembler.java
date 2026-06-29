@@ -152,6 +152,9 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
     private static final String LANG_MSG_ASSEMBLER_BLOCKED = "message.holoassemblerar.assembler_blocked";
     private static final String LANG_MSG_ASSEMBLER_BUILD_COMPLETE = "message.holoassemblerar.assembler_build_complete";
     private static final String LANG_MSG_ASSEMBLER_BUILD_INCOMPLETE = "message.holoassemblerar.assembler_build_incomplete";
+    private static final String LANG_MSG_ASSEMBLER_BLOCKED_DEBUG = "message.holoassemblerar.assembler_blocked.debug";
+    private static final String LANG_MSG_ASSEMBLER_BUILD_COMPLETE_DEBUG = "message.holoassemblerar.assembler_build_complete.debug";
+    private static final String LANG_MSG_ASSEMBLER_BUILD_INCOMPLETE_DEBUG = "message.holoassemblerar.assembler_build_incomplete.debug";
 
     private static final int BTN_INVENTORY = 0;
     private static final int BTN_EMC = 1;
@@ -921,40 +924,23 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
     }
 
     @Override
-    public EnumActionResult onItemUse(EntityPlayer player,
-                                      World world,
-                                      BlockPos controllerPos,
-                                      EnumHand hand,
-                                      EnumFacing facing,
-                                      float hitX,
-                                      float hitY,
-                                      float hitZ) {
-        ItemStack heldStack = player.getHeldItem(hand);
+    public EnumActionResult onItemUse(EntityPlayer player, World world, BlockPos controllerPos, EnumHand hand,
+                                      EnumFacing facing, float hitX, float hitY, float hitZ) {
 
-        if (player.isSneaking()) {
+        ItemStack heldStack = player.getHeldItem(hand);
+        // Holo-Assembler block actions are sneak-only.
+        // Normal right-click should not hijack AR/LibVulpes controller behavior.
+        if (!player.isSneaking()) {
+            return EnumActionResult.PASS;
+        }
+        TileEntity tile = world.getTileEntity(controllerPos);
+        int assemblerMode = getAssemblerMode(tile);
+        if (assemblerMode != MODE_NONE) {
             clearPreview(player);
 
-            TileEntity clickedTile = world.getTileEntity(controllerPos);
-            int assemblerMode = getAssemblerMode(clickedTile);
+            // Important: run on BOTH client and server so getModules() sees the context.
+            setAssemblerBuilderContext(heldStack, world, controllerPos, assemblerMode);
 
-            if (assemblerMode != MODE_NONE) {
-                // Important: run on BOTH client and server so getModules() sees the context.
-                setAssemblerBuilderContext(heldStack, world, controllerPos, assemblerMode);
-
-                if (!world.isRemote) {
-                    player.openGui(
-                            LibVulpes.instance,
-                            GuiHandler.guiId.MODULARNOINV.ordinal(),
-                            world,
-                            -1,
-                            -1,
-                            0
-                    );
-                }
-
-                return EnumActionResult.SUCCESS;
-            }
-            clearAssemblerContext(heldStack);
             if (!world.isRemote) {
                 player.openGui(
                         LibVulpes.instance,
@@ -967,19 +953,16 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             }
             return EnumActionResult.SUCCESS;
         }
-        if (world.isRemote) {
-            return EnumActionResult.SUCCESS;
-        }
-        TileEntity tile = world.getTileEntity(controllerPos);
-
-        // IMPORTANT:
-        // No special assembler handling here.
-        // Normal right-click should stay AR's normal behavior.
 
         if (!(tile instanceof TileMultiBlock)) {
             return EnumActionResult.PASS;
         }
+        clearPreview(player);
+        clearAssemblerContext(heldStack);
 
+        if (world.isRemote) {
+            return EnumActionResult.SUCCESS;
+        }
         TileMultiBlock multiblock = (TileMultiBlock) tile;
         Object[][][] structure = multiblock.getStructure();
 
@@ -1857,12 +1840,6 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             }
         }
 
-        if (blocked > 0) {
-            send(player, LANG_MSG_ASSEMBLER_BLOCKED, blocked);
-            // Later: also feed these positions into your preview/red-X client handler.
-            return;
-        }
-
         int placed = 0;
         int missing = 0;
         int emcPlaced = 0;
@@ -1871,7 +1848,16 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         boolean useInventorySource = useInventory(stack);
         boolean useEmcSource = useEmc(stack) && isEmcAvailable();
         boolean useMeSource = useMe(stack) && isMeAvailable();
+        boolean debugOutput = HoloAssemblerConfig.enableDebugMode && isDebugEnabled(stack);
 
+        if (blocked > 0) {
+            if (debugOutput) {
+                send(player, LANG_MSG_ASSEMBLER_BLOCKED_DEBUG, blocked, alreadyValid,
+                        formatActiveSources(useInventorySource, useEmcSource, useMeSource)
+                );
+            } else {send(player, LANG_MSG_ASSEMBLER_BLOCKED, blocked);}
+            return;
+        }
         for (GeneratedCell cell : plan.cells) {
             if (matchesAllowed(world, cell.pos, cell.allowed)) {
                 continue;
@@ -1915,10 +1901,19 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             }
         }
 
-        if (missing == 0) {
-            send(player, LANG_MSG_ASSEMBLER_BUILD_COMPLETE, placed, alreadyValid, emcPlaced, mePlaced);
-        } else {
-            send(player, LANG_MSG_ASSEMBLER_BUILD_INCOMPLETE, placed, missing);
+        if (missing == 0) {if (debugOutput) {
+                send(player, LANG_MSG_ASSEMBLER_BUILD_COMPLETE_DEBUG, placed,
+                        alreadyValid, emcPlaced, mePlaced,
+                        formatActiveSources(useInventorySource, useEmcSource, useMeSource)
+                );
+            } else {send(player, LANG_MSG_ASSEMBLER_BUILD_COMPLETE);}
+        } else {if (debugOutput) {
+                send(player, LANG_MSG_ASSEMBLER_BUILD_INCOMPLETE_DEBUG, placed,
+                        missing, alreadyValid, emcPlaced, mePlaced,
+                        formatActiveSources(useInventorySource, useEmcSource, useMeSource)
+                );
+            } else {send(player, LANG_MSG_ASSEMBLER_BUILD_INCOMPLETE);
+            }
         }
     }
 
@@ -2391,7 +2386,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             );
         }
         tooltip.add(TextFormatting.GRAY + I18n.format("tooltip.holoassemblerar.description"));
-        tooltip.add(TextFormatting.YELLOW + I18n.format("tooltip.holoassemblerar.use.assemble"));
+        tooltip.add(TextFormatting.YELLOW + I18n.format("tooltip.holoassemblerar.use.build"));
         tooltip.add(TextFormatting.GOLD + I18n.format("tooltip.holoassemblerar.use.settings"));
     }
 

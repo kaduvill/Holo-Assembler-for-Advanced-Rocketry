@@ -7,8 +7,8 @@ tooltip.holoassemblerar.sources.none=None
 tooltip.holoassemblerar.source_separator=>
 tooltip.holoassemblerar.me_link=ME Link:
 tooltip.holoassemblerar.description=Builds Advanced Rocketry multiblock structures from available sources.
-tooltip.holoassemblerar.use.assemble=Right-click controller to assemble.
-tooltip.holoassemblerar.use.settings=Sneak-right-click to open settings.
+tooltip.holoassemblerar.use.build=Sneak-right-click controller or assembler to build.
+tooltip.holoassemblerar.use.settings=Sneak-right-click air to open settings.
 
 gui.holoassemblerar.source.inventory=Inventory
 gui.holoassemblerar.source.emc=EMC
@@ -41,14 +41,18 @@ message.holoassemblerar.could_not_place=[Holo-Assembler] Could not place: %s.
 message.holoassemblerar.could_not_place.debug=[Holo-Assembler] Could not place: %s. Placed=%s, EMC placed=%s, ME placed=%s, still incorrect=%s, blocked=%s, missing sources=%s, active sources=%s.
 message.holoassemblerar.unknown_block=Unknown block
 
-
+# Assemblers
 message.holoassemblerar.assembler_wrong_dimension=[Holo-Assembler] Assembler is in another dimension.
 message.holoassemblerar.assembler_too_far=[Holo-Assembler] Move closer to the assembler.
 message.holoassemblerar.assembler_not_loaded=[Holo-Assembler] Assembler chunk is not loaded.
 message.holoassemblerar.assembler_invalid=[Holo-Assembler] Target assembler is no longer valid.
 message.holoassemblerar.assembler_invalid_plan=[Holo-Assembler] Could not create assembler plan.
 message.holoassemblerar.assembler_blocked=[Holo-Assembler] Build blocked by %s occupied positions. Preview shows the blockers.
-message.holoassemblerar.assembler_build_complete=[Holo-Assembler] Build complete. Placed=%s, already correct=%s, EMC placed=%s, ME placed=%s.
+message.holoassemblerar.assembler_build_complete=[Holo-Assembler] Build complete.
 message.holoassemblerar.assembler_build_incomplete=[Holo-Assembler] Build incomplete. Placed=%s, missing sources=%s.
+message.holoassemblerar.assembler_blocked.debug=[Holo-Assembler] Build blocked. Blocked=%s, already correct=%s, active sources=%s. Preview shows the blockers.
+message.holoassemblerar.assembler_build_complete.debug=[Holo-Assembler] Build complete. Placed=%s, already correct=%s, EMC placed=%s, ME placed=%s, active sources=%s.
+message.holoassemblerar.assembler_build_incomplete.debug=[Holo-Assembler] Build incomplete. Placed=%s, missing sources=%s, already correct=%s, EMC placed=%s, ME placed=%s, active sources=%s.
+
 
 itemGroup.holoassemblerar=Holo-Assembler AR
