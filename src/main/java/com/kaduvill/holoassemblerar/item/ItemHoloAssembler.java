@@ -957,13 +957,18 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         if (!(tile instanceof TileMultiBlock)) {
             return EnumActionResult.PASS;
         }
+        TileMultiBlock multiblock = (TileMultiBlock) tile;
+        // Already formed/rendered multiblocks are not Holo-Assembler build targets.
+        // Do not run the raw structure scan on them.
+        if (!world.isRemote && multiblock.isComplete()) {
+            return EnumActionResult.SUCCESS;
+        }
         clearPreview(player);
         clearAssemblerContext(heldStack);
 
         if (world.isRemote) {
             return EnumActionResult.SUCCESS;
         }
-        TileMultiBlock multiblock = (TileMultiBlock) tile;
         Object[][][] structure = multiblock.getStructure();
 
         if (structure == null) {
