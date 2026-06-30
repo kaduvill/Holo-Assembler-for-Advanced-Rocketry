@@ -7,8 +7,8 @@ tooltip.holoassemblerar.sources.none=无
 tooltip.holoassemblerar.source_separator=>
 tooltip.holoassemblerar.me_link=ME链接：
 tooltip.holoassemblerar.description=从可用材料源构建高级火箭的多方块结构。
-tooltip.holoassemblerar.use.assemble=右键点击控制器进行组装。
-tooltip.holoassemblerar.use.settings=潜行右键点击控制器打开设置。
+tooltip.holoassemblerar.use.build=潜行右键点击控制器/组装机。
+tooltip.holoassemblerar.use.settings=潜行右键点击空气打开设置。
 
 gui.holoassemblerar.source.inventory=物品栏
 gui.holoassemblerar.source.emc=EMC
@@ -16,6 +16,20 @@ gui.holoassemblerar.source.me=ME
 gui.holoassemblerar.source.debug=调试
 gui.holoassemblerar.button.on=开
 gui.holoassemblerar.button.off=关
+gui.holoassemblerar.button.preview=预览
+gui.holoassemblerar.button.build=搭建
+gui.holoassemblerar.builder.width=宽度：%s
+gui.holoassemblerar.builder.left_offset=左偏移：%s
+gui.holoassemblerar.builder.right_offset=右偏移：%s
+gui.holoassemblerar.builder.pad_length=平台长度：%s
+gui.holoassemblerar.builder.forward_span=前向跨度：%s
+gui.holoassemblerar.builder.tower_height=结构塔高度：%s
+gui.holoassemblerar.builder.frame_height=框架高度：%s
+gui.holoassemblerar.builder.tower_side=结构塔位置：
+gui.holoassemblerar.tower_side.opposite=对侧
+gui.holoassemblerar.tower_side.left=左侧
+gui.holoassemblerar.tower_side.right=右侧
+gui.holoassemblerar.active_sources.none=无
 
 message.holoassemblerar.no_structure=[全息组装器] 没有找到结构。
 message.holoassemblerar.no_controller_marker=[全息组装器] 结构中未找到控制器标记。
@@ -24,7 +38,20 @@ message.holoassemblerar.structure_complete.debug=[全息组装器] 结构完整�
 message.holoassemblerar.assembly_complete=[全息组装器] 组装完成。所有需要的方块现已正确。
 message.holoassemblerar.assembly_complete.debug=[全息组装器] 组装完成。已放置=%s，EMC放置=%s，ME放置=%s。所有需要的方块现已正确。
 message.holoassemblerar.could_not_place=[全息组装器] 无法放置：%s。
-message.holoassemblerar.could_not_place.debug=[全息组装器] 无法放置：%s。已放置=%s，EMC放置=%s，ME放置=%s，仍不正确=%s，被阻挡=%s，缺少材料源=%s，激活的材料源=%s。
+message.holoassemblerar.could_not_place.debug=[全息组装器] 无法放置：%s。已放置=%s，EMC放置=%s，ME放置=%s，仍不正确=%s，被阻挡=%s，缺少材料=%s，激活的材料源=%s。
 message.holoassemblerar.unknown_block=未知方块
+
+# Assemblers
+message.holoassemblerar.assembler_wrong_dimension=[全息组装器] 组装机位于其他维度。
+message.holoassemblerar.assembler_too_far=[全息组装器] 距离组装机过远。
+message.holoassemblerar.assembler_not_loaded=[全息组装器] 组装机所在区块未加载。
+message.holoassemblerar.assembler_invalid=[全息组装器] 目标组装机不再有效。
+message.holoassemblerar.assembler_invalid_plan=[全息组装器] 无法创建组装机规划。
+message.holoassemblerar.assembler_blocked=[全息组装器] 有%s个位置已被占用，搭建被阻挡。请使用预览查看。
+message.holoassemblerar.assembler_build_complete=[全息组装器] 搭建完成。
+message.holoassemblerar.assembler_build_incomplete=[全息组装器] 搭建未完成。已放置=%s，缺少材料=%s。
+message.holoassemblerar.assembler_blocked.debug=[全息组装器] 搭建被阻挡。被阻挡=%s，无需操作=%s，激活的材料源=%s。请使用预览查看。
+message.holoassemblerar.assembler_build_complete.debug=[全息组装器] 搭建完成。已放置=%s，无需操作=%s，EMC放置=%s，ME放置=%s，激活的材料源=%s。
+message.holoassemblerar.assembler_build_incomplete.debug=[全息组装器] 搭建未完成。已放置=%s，缺少材料=%s，无需操作=%s，EMC放置=%s，ME放置=%s，激活的材料源=%s。
 
 itemGroup.holoassemblerar=全息组装器（高级火箭）
