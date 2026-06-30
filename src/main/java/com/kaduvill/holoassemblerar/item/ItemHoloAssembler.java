@@ -1912,7 +1912,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                         missing, alreadyValid, emcPlaced, mePlaced,
                         formatActiveSources(useInventorySource, useEmcSource, useMeSource)
                 );
-            } else {send(player, LANG_MSG_ASSEMBLER_BUILD_INCOMPLETE);
+            } else {send(player, LANG_MSG_ASSEMBLER_BUILD_INCOMPLETE, placed, missing);
             }
         }
     }
@@ -1932,7 +1932,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         }
 
         if (tag.getInteger(NBT_ASSEMBLER_DIM) != world.provider.getDimension()) {
-            send(player, "message.holoassemblerar.assembler_wrong_dimension");
+            send(player, LANG_MSG_ASSEMBLER_WRONG_DIMENSION);
             return;
         }
 
@@ -1943,12 +1943,12 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         );
 
         if (player.getDistanceSq(assemblerPos) > PREVIEW_MAX_DISTANCE_SQ) {
-            send(player, "message.holoassemblerar.assembler_too_far");
+            send(player, LANG_MSG_ASSEMBLER_TOO_FAR);
             return;
         }
 
         if (!world.isBlockLoaded(assemblerPos)) {
-            send(player, "message.holoassemblerar.assembler_not_loaded");
+            send(player, LANG_MSG_ASSEMBLER_NOT_LOADED);
             return;
         }
 
@@ -1957,7 +1957,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         int actualMode = getAssemblerMode(tile);
 
         if (expectedMode == MODE_NONE || actualMode != expectedMode) {
-            send(player, "message.holoassemblerar.assembler_invalid");
+            send(player, LANG_MSG_ASSEMBLER_INVALID);
             clearAssemblerContext(stack);
             return;
         }
@@ -1965,7 +1965,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         GeneratedPlan plan = createGeneratedPlan(world, assemblerPos, expectedMode, stack);
 
         if (plan == null || plan.cells.isEmpty()) {
-            send(player, "message.holoassemblerar.assembler_invalid_plan");
+            send(player, LANG_MSG_ASSEMBLER_INVALID_PLAN);
             return;
         }
 
