@@ -40,9 +40,9 @@ gui.holoassemblerar.hint.builder=Sneak-Right-Click to open Builder
 # Chat Feedback
 message.holoassemblerar.no_structure=[Holo-Assembler] No structure found.
 message.holoassemblerar.no_controller_marker=[Holo-Assembler] No controller marker found in structure.
-message.holoassemblerar.structure_complete=[Holo-Assembler] Structure complete. All required blocks are already correct.
+message.holoassemblerar.structure_complete=[Holo-Assembler] Structure complete. All blocks are already correct.
 message.holoassemblerar.structure_complete.debug=[Holo-Assembler] Structure complete. All required blocks are already correct. Already valid=%s, ignored=%s, active sources=%s.
-message.holoassemblerar.assembly_complete=[Holo-Assembler] Assembly complete. All required blocks are now correct.
+message.holoassemblerar.assembly_complete=[Holo-Assembler] Assembly complete.
 message.holoassemblerar.assembly_complete.debug=[Holo-Assembler] Assembly complete. Placed=%s, EMC placed=%s, ME placed=%s. All required blocks are now correct.
 message.holoassemblerar.could_not_place=[Holo-Assembler] Could not place: %s.
 message.holoassemblerar.could_not_place.debug=[Holo-Assembler] Could not place: %s. Placed=%s, EMC placed=%s, ME placed=%s, still incorrect=%s, blocked=%s, missing sources=%s, active sources=%s.
