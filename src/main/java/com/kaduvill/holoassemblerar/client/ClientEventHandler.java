@@ -2,30 +2,41 @@ package com.kaduvill.holoassemblerar.client;
 
 import com.kaduvill.holoassemblerar.HoloAssemblerAR;
 import com.kaduvill.holoassemblerar.item.ItemHoloAssembler;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraftforge.client.event.ModelRegistryEvent;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import org.lwjgl.opengl.GL11;
+import zmaster587.advancedRocketry.tile.TileRocketAssemblingMachine;
+import zmaster587.advancedRocketry.tile.TileStationAssembler;
+import zmaster587.advancedRocketry.tile.TileUnmannedVehicleAssembler;
+import zmaster587.libVulpes.tile.multiblock.TileMultiBlock;
 
 import java.util.List;
 
 @Mod.EventBusSubscriber(modid = HoloAssemblerAR.MOD_ID, value = Side.CLIENT)
 public final class ClientEventHandler {
+
+    private static final String LANG_HINT_BUILD = "gui.holoassemblerar.hint.build";
+    private static final String LANG_HINT_BUILDER = "gui.holoassemblerar.hint.builder";
 
     private ClientEventHandler() {
     }
@@ -37,6 +48,74 @@ public final class ClientEventHandler {
                 0,
                 new ModelResourceLocation(HoloAssemblerAR.MOD_ID + ":holo_assembler", "inventory")
         );
+    }
+
+    @SubscribeEvent
+    public static void renderHoloAssemblerHint(RenderGameOverlayEvent.Post event) {
+        if (event.getType() != RenderGameOverlayEvent.ElementType.ALL) {
+            return;
+        }
+
+        Minecraft mc = Minecraft.getMinecraft();
+
+        if (mc.player == null || mc.world == null || mc.currentScreen != null || mc.gameSettings.hideGUI) {
+            return;
+        }
+
+        // Do not clutter the F3/debug screen.
+        if (mc.gameSettings.showDebugInfo) {
+            return;
+        }
+
+        EntityPlayer player = mc.player;
+        ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
+
+        if (stack.isEmpty() || !(stack.getItem() instanceof ItemHoloAssembler)) {
+            return;
+        }
+
+        RayTraceResult hit = mc.objectMouseOver;
+
+        if (hit == null || hit.typeOfHit != RayTraceResult.Type.BLOCK || hit.getBlockPos() == null) {
+            return;
+        }
+
+        TileEntity tile = mc.world.getTileEntity(hit.getBlockPos());
+        String langKey = getHoloAssemblerHintKey(tile);
+
+        if (langKey == null) {
+            return;
+        }
+
+        String text = I18n.format(langKey);
+        ScaledResolution resolution = new ScaledResolution(mc);
+
+        int x = (resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(text)) / 2;
+        int y = resolution.getScaledHeight() / 2 + 22;
+
+        mc.fontRenderer.drawStringWithShadow(text, x, y, 0xFFFFFF);
+    }
+
+    private static String getHoloAssemblerHintKey(TileEntity tile) {
+        if (isAssemblerTile(tile)) {
+            return LANG_HINT_BUILDER;
+        }
+        if (tile instanceof TileMultiBlock) {
+            TileMultiBlock multiblock = (TileMultiBlock) tile;
+
+            if (multiblock.canRender()) {
+                return null;
+            }
+
+            return LANG_HINT_BUILD;
+        }
+        return null;
+    }
+
+    private static boolean isAssemblerTile(TileEntity tile) {
+        return tile instanceof TileStationAssembler
+                || tile instanceof TileUnmannedVehicleAssembler
+                || tile instanceof TileRocketAssemblingMachine;
     }
 
     @SubscribeEvent

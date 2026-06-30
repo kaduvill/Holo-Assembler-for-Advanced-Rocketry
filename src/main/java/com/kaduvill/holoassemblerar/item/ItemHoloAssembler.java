@@ -1868,7 +1868,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             if (player.capabilities.isCreativeMode) {
                 didPlace = placeFromInventory(world, cell.pos, cell.allowed, player);
             } else {
-                List survivalAllowed = getAllowedForSurvivalAutomaticPlacement(cell.allowed);
+                List<BlockMeta> survivalAllowed = getAllowedForSurvivalAutomaticPlacement(cell.allowed);
 
                 if (useInventorySource) {
                     didPlace = placeFromInventory(world, cell.pos, survivalAllowed, player);
