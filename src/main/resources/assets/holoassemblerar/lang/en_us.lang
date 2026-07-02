@@ -7,7 +7,7 @@ tooltip.holoassemblerar.sources=Sources:
 tooltip.holoassemblerar.sources.none=None
 tooltip.holoassemblerar.source_separator=>
 tooltip.holoassemblerar.me_link=ME Link:
-tooltip.holoassemblerar.description=Builds Advanced Rocketry multiblock structures from available sources.
+tooltip.holoassemblerar.description=Builds Multiblocks and Launch pads.
 tooltip.holoassemblerar.use.build=Sneak-right-click controller/assembler.
 tooltip.holoassemblerar.use.settings=Sneak-right-click air to open settings.
 
@@ -63,3 +63,6 @@ message.holoassemblerar.assembler_build_complete.debug=[Holo-Assembler] Build co
 message.holoassemblerar.assembler_build_incomplete.debug=[Holo-Assembler] Build incomplete. Placed=%s, missing sources=%s, already correct=%s, EMC placed=%s, ME placed=%s, active sources=%s.
 
 
+# JEI
+jei.holoassemblerar.projector_upgrade.title=Holo-Projector Upgrade
+jei.holoassemblerar.projector_upgrade.note=Upgrade to assembler
