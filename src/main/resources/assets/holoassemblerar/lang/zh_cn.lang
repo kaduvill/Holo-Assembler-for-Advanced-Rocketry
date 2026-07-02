@@ -1,4 +1,5 @@
 item.holoassemblerar.holo_assembler.name=全息组装器
+itemGroup.holoassemblerar=全息组装器（高级火箭）
 tooltip.holoassemblerar.me_link.not_linked=未链接
 tooltip.holoassemblerar.me_link.linked=已链接
 tooltip.holoassemblerar.me_link.named=%s
@@ -6,10 +7,11 @@ tooltip.holoassemblerar.sources=材料源：
 tooltip.holoassemblerar.sources.none=无 
 tooltip.holoassemblerar.source_separator=>
 tooltip.holoassemblerar.me_link=ME链接：
-tooltip.holoassemblerar.description=从可用材料源构建高级火箭的多方块结构。
+tooltip.holoassemblerar.description=搭建多方块结构和发射台。
 tooltip.holoassemblerar.use.build=潜行右键点击控制器/组装机。
 tooltip.holoassemblerar.use.settings=潜行右键点击空气打开设置。
 
+# GUI stuff
 gui.holoassemblerar.source.inventory=物品栏
 gui.holoassemblerar.source.emc=EMC
 gui.holoassemblerar.source.me=ME
@@ -31,15 +33,21 @@ gui.holoassemblerar.tower_side.left=左侧
 gui.holoassemblerar.tower_side.right=右侧
 gui.holoassemblerar.active_sources.none=无
 
+# On-Screen hint
+gui.holoassemblerar.hint.build=潜行+右键点击以搭建
+gui.holoassemblerar.hint.builder=潜行+右键点击以打开组装机界面
+
+# Chat Feedback
 message.holoassemblerar.no_structure=[全息组装器] 没有找到结构。
 message.holoassemblerar.no_controller_marker=[全息组装器] 结构中未找到控制器标记。
-message.holoassemblerar.structure_complete=[全息组装器] 结构完整。所有需要的方块都已正确。
+message.holoassemblerar.structure_complete=[全息组装器] 结构完整。所有方块都已正确。
 message.holoassemblerar.structure_complete.debug=[全息组装器] 结构完整。所有需要的方块都已正确。有效=%s，忽略=%s，激活的材料源=%s。
-message.holoassemblerar.assembly_complete=[全息组装器] 组装完成。所有需要的方块现已正确。
+message.holoassemblerar.assembly_complete=[全息组装器] 组装完成。
 message.holoassemblerar.assembly_complete.debug=[全息组装器] 组装完成。已放置=%s，EMC放置=%s，ME放置=%s。所有需要的方块现已正确。
 message.holoassemblerar.could_not_place=[全息组装器] 无法放置：%s。
 message.holoassemblerar.could_not_place.debug=[全息组装器] 无法放置：%s。已放置=%s，EMC放置=%s，ME放置=%s，仍不正确=%s，被阻挡=%s，缺少材料=%s，激活的材料源=%s。
 message.holoassemblerar.unknown_block=未知方块
+
 
 # Assemblers
 message.holoassemblerar.assembler_wrong_dimension=[全息组装器] 组装机位于其他维度。
@@ -54,4 +62,7 @@ message.holoassemblerar.assembler_blocked.debug=[全息组装器] 搭建被阻�
 message.holoassemblerar.assembler_build_complete.debug=[全息组装器] 搭建完成。已放置=%s，无需操作=%s，EMC放置=%s，ME放置=%s，激活的材料源=%s。
 message.holoassemblerar.assembler_build_incomplete.debug=[全息组装器] 搭建未完成。已放置=%s，缺少材料=%s，无需操作=%s，EMC放置=%s，ME放置=%s，激活的材料源=%s。
 
-itemGroup.holoassemblerar=全息组装器（高级火箭）
+
+# JEI
+jei.holoassemblerar.projector_upgrade.title=全息投影器升级
+jei.holoassemblerar.projector_upgrade.note=升级为组装器
