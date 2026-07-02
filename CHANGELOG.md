@@ -1,6 +1,5 @@
 0.5.1
-- JEI pages
-- Tooltip and hints
+- Tooltip and hints polish
 
 0.5.0
 - Sneak + Right click assemblers to open the pad builderGUI
