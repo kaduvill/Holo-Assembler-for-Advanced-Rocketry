@@ -38,8 +38,7 @@ public final class HoloProjectorUpgradeWrapper implements IRecipeWrapper {
         // Visible output. Category renders this in the output slot.
         outputs.add(assembler);
 
-        // Hidden/discoverability output:
-        // lets R / left-click on Holo-Projector find this JEI page.
+        // let 'R' / left-click on Holo-Projector find this JEI page.
         outputs.add(projector);
 
         ingredients.setOutputs(VanillaTypes.ITEM, outputs);

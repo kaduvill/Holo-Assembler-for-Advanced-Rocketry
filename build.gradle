@@ -81,7 +81,7 @@ repositories {
 }
 
 dependencies {
-    // dev/deobf jars in /libs.
+    // dev/deobf jars in ./libs.
     compileOnly rfg.deobf(files('libs/advancedrocketry-2.2.11-dev.jar'))
     compileOnly rfg.deobf(files('libs/libvulpes-0.5.5-dev.jar'))
 
