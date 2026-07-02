@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'com.kaduvill.holoassemblerar'
-version = '1.12.2-0.5.0'
+version = '1.12.2-0.5.1'
 
 if (System.getenv('BUILD_NUMBER') != null) {
     version = "${version}.${System.getenv('BUILD_NUMBER')}"
@@ -81,21 +81,24 @@ repositories {
 }
 
 dependencies {
-    // Put matching dev/deobf jars from your AR fork and LibVulpes in /libs.
-    // These names are suggestions; change them if your jar names differ.
-    compileOnly rfg.deobf(files('libs/advancedrocketry-2.2.9-dev.jar'))
-    compileOnly rfg.deobf(files('libs/libvulpes-0.5.3-dev.jar'))
+    // dev/deobf jars in /libs.
+    compileOnly rfg.deobf(files('libs/advancedrocketry-2.2.11-dev.jar'))
+    compileOnly rfg.deobf(files('libs/libvulpes-0.5.5-dev.jar'))
+
+    // Dev Env (// if testing other versions)
+    runtimeOnly rfg.deobf(files('libs/advancedrocketry-2.2.11-dev.jar'))
+    runtimeOnly rfg.deobf(files('libs/libvulpes-0.5.5-dev.jar'))
+
     // Compats
     compileOnly rfg.deobf('curse.maven:projecte-226410:2702991')
     compileOnly rfg.deobf('curse.maven:ae2-extended-life-570458:5411078')
 
-    // Dev Env
-    runtimeOnly rfg.deobf(files('libs/advancedrocketry-2.2.9-dev.jar'))
-    runtimeOnly rfg.deobf(files('libs/libvulpes-0.5.3-dev.jar'))
-
-    runtimeOnly rfg.deobf('curse.maven:jei-238222:3040523')
     runtimeOnly rfg.deobf('curse.maven:projecte-226410:2702991')
     runtimeOnly rfg.deobf('curse.maven:ae2-extended-life-570458:5411078')
+
+    // Jei
+    compileOnly 'mezz:jei:4.31.2'
+    runtimeOnly rfg.deobf('curse.maven:had-enough-items-557549:8081514')
 }
 
 processResources {
