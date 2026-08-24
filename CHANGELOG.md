@@ -1,5 +1,5 @@
 0.5.2
-- Hygiene and lifecycle cleanups to avoid stale state and leaks
+- Performance, Hygiene and lifecycle cleanups to avoid stale states and leaks
 
 0.5.1
 - Tooltip and hints polish
