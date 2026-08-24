@@ -10,7 +10,9 @@ import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import org.apache.logging.log4j.Logger;
 import com.kaduvill.holoassemblerar.config.HoloAssemblerConfig;
 import com.kaduvill.holoassemblerar.compat.AE2Compat;
@@ -68,5 +70,10 @@ public class HoloAssemblerAR {
         if (Loader.isModLoaded("appliedenergistics2")) {
             AE2Compat.registerWirelessHandler();
         }
+    }
+
+    @Mod.EventHandler
+    public void serverStopping(FMLServerStoppingEvent event) {
+        ItemHoloAssembler.clearAllPreviews(FMLCommonHandler.instance().getMinecraftServerInstance());
     }
 }

@@ -19,6 +19,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
@@ -30,6 +31,11 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
+import net.minecraftforge.event.entity.item.ItemTossEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import zmaster587.advancedRocketry.api.AdvancedRocketryBlocks;
@@ -70,6 +76,7 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.UUID;
 
+@Mod.EventBusSubscriber(modid = "holoassemblerar")
 public class ItemHoloAssembler extends Item implements IModularInventory, IButtonInventory, IGuiCallback, INetworkItem {
 
     private static final String NBT_USE_INVENTORY = "UseInventory";
@@ -2055,46 +2062,98 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         return null;
     }
 
+    private static boolean clearPreviewTags(ItemStack stack) {
+        if (stack.isEmpty() || !(stack.getItem() instanceof ItemHoloAssembler)) {
+            return false;
+        }
+
+        NBTTagCompound tag = stack.getTagCompound();
+
+        if (tag == null) {
+            return false;
+        }
+
+        boolean changed = false;
+
+        if (tag.hasKey(NBT_PREVIEW_ACTIVE)) {
+            tag.setBoolean(NBT_PREVIEW_ACTIVE, false);
+            changed = true;
+        }
+
+        if (tag.hasKey(NBT_PREVIEW_EXPIRE)) {
+            tag.removeTag(NBT_PREVIEW_EXPIRE);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private static void clearPreviewTags(EntityPlayer player) {
+        boolean changed = false;
+
+        for (int slot = 0; slot < player.inventory.getSizeInventory(); slot++) {
+            changed |= clearPreviewTags(player.inventory.getStackInSlot(slot));
+        }
+
+        if (changed) {
+            player.inventory.markDirty();
+        }
+    }
+
     private static void clearPreview(EntityPlayer player) {
         if (player == null) {
             return;
         }
 
-        ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
-
-        if (!stack.isEmpty() && stack.getItem() instanceof ItemHoloAssembler) {
-            NBTTagCompound tag = stack.getTagCompound();
-
-            if (tag != null) {
-                tag.setBoolean(NBT_PREVIEW_ACTIVE, false);
-                tag.removeTag(NBT_PREVIEW_EXPIRE);
-            }
-        }
+        clearPreviewTags(player);
 
         if (player.world == null || player.world.isRemote) {
             return;
         }
 
-        ActivePreview preview = ACTIVE_PREVIEWS.remove(player.getUniqueID());
+        clearPreview(player.getUniqueID(), player.getServer());
+    }
 
-        if (preview == null) {
+    private static void clearPreview(UUID playerId, MinecraftServer server) {
+        if (playerId == null) {
             return;
         }
 
-        if (player.getServer() == null) {
+        ActivePreview preview = ACTIVE_PREVIEWS.remove(playerId);
+
+        if (preview == null || server == null) {
             return;
         }
 
-        WorldServer world = player.getServer().getWorld(preview.dimension);
+        WorldServer world = server.getWorld(preview.dimension);
 
         if (world == null) {
             return;
         }
 
         for (BlockPos pos : preview.phantomPositions) {
+            if (!world.isBlockLoaded(pos)) {
+                continue;
+            }
+
             if (world.getBlockState(pos).getBlock() == LibVulpesBlocks.blockPhantom) {
                 world.setBlockToAir(pos);
             }
+        }
+    }
+
+    public static void clearAllPreviews(MinecraftServer server) {
+        if (ACTIVE_PREVIEWS.isEmpty()) {
+            return;
+        }
+
+        if (server == null) {
+            ACTIVE_PREVIEWS.clear();
+            return;
+        }
+
+        for (UUID playerId : new ArrayList<>(ACTIVE_PREVIEWS.keySet())) {
+            clearPreview(playerId, server);
         }
     }
 
@@ -2136,7 +2195,35 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
             tickPreview((EntityPlayer) entity);
         }
     }
+    @SubscribeEvent
+    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        clearPreview(event.player);
+    }
 
+    @SubscribeEvent
+    public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+        clearPreview(event.player);
+    }
+
+    @SubscribeEvent
+    public static void onPlayerDeath(LivingDeathEvent event) {
+        if (event.getEntityLiving() instanceof EntityPlayer) {
+            clearPreview((EntityPlayer) event.getEntityLiving());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onItemToss(ItemTossEvent event) {
+        if (event.getEntityItem() == null) {
+            return;
+        }
+
+        ItemStack stack = event.getEntityItem().getItem();
+
+        if (clearPreviewTags(stack)) {
+            clearPreview(event.getPlayer());
+        }
+    }
     private static int getAssemblerMode(ItemStack stack) {
         NBTTagCompound tag = stack.getTagCompound();
         return tag == null ? MODE_NONE : tag.getInteger(NBT_ASSEMBLER_MODE);
@@ -2154,6 +2241,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
         tag.removeTag(NBT_ASSEMBLER_Z);
         tag.removeTag(NBT_ASSEMBLER_DIM);
         tag.removeTag(NBT_PREVIEW_ACTIVE);
+        tag.removeTag(NBT_PREVIEW_EXPIRE);
         tag.removeTag(NBT_TOWER_SIDE);
         tag.removeTag(NBT_BUILD_REQUESTED);
     }
