@@ -61,7 +61,6 @@ import zmaster587.libVulpes.network.PacketHandler;
 import zmaster587.libVulpes.network.PacketItemModifcation;
 import zmaster587.libVulpes.tile.TileSchematic;
 import zmaster587.libVulpes.tile.multiblock.TileMultiBlock;
-import zmaster587.libVulpes.tile.multiblock.TilePlaceholder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -199,7 +198,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                                                                        int length,
                                                                        int towerHeight,
                                                                        int towerSide) {
-        List<AxisAlignedBB> boxes = new LinkedList<>();
+        List<AxisAlignedBB> boxes = new ArrayList<>(2);
 
         EnumFacing left = forward.rotateYCCW();
         EnumFacing right = forward.rotateY();
@@ -239,7 +238,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
                                                                   int rightOffset,
                                                                   int forwardSpan,
                                                                   int height) {
-        List<AxisAlignedBB> boxes = new LinkedList<>();
+        List<AxisAlignedBB> boxes = new ArrayList<>(3);
 
         EnumFacing left = forward.rotateYCCW();
         EnumFacing right = forward.rotateY();
@@ -295,8 +294,8 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
     }
 
     private static class GeneratedPlan {
-        final List<GeneratedCell> cells = new LinkedList<>();
-        final java.util.Set<BlockPos> usedPositions = new java.util.LinkedHashSet<>();
+        final List<GeneratedCell> cells = new ArrayList<>();
+        final java.util.Set<BlockPos> usedPositions = new java.util.HashSet<>();
     }
 
     private static class GeneratedCell {
@@ -305,8 +304,7 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
 
         GeneratedCell(BlockPos pos, BlockMeta blockMeta) {
             this.pos = pos;
-            this.allowed = new LinkedList<>();
-            this.allowed.add(blockMeta);
+            this.allowed = Collections.singletonList(blockMeta);
         }
     }
 
@@ -1274,20 +1272,20 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
     }
 
     private static List<BlockMeta> getAllowedForSurvivalAutomaticPlacement(List<BlockMeta> allowed) {
-        List<BlockMeta> filtered = new LinkedList<>();
-
+        boolean needsFiltering = false;
         for (BlockMeta blockMeta : allowed) {
-            if (blockMeta == null) {
-                continue;
+            if (blockMeta == null || isCreativePowerInput(blockMeta)) {
+                needsFiltering = true;
+                break;
             }
-
-            if (isCreativePowerInput(blockMeta)) {
-                continue;
-            }
-
-            filtered.add(blockMeta);
         }
-
+        if (!needsFiltering) {return allowed;}
+        List<BlockMeta> filtered = new ArrayList<>(allowed.size());
+        for (BlockMeta blockMeta : allowed) {
+            if (blockMeta != null && !isCreativePowerInput(blockMeta)) {
+                filtered.add(blockMeta);
+            }
+        }
         return filtered;
     }
 
@@ -2013,34 +2011,22 @@ public class ItemHoloAssembler extends Item implements IModularInventory, IButto
     }
 
     private static boolean placePreviewPhantom(World world, BlockPos pos, List<BlockMeta> allowed) {
-        if (!canReplaceForAssembly(world, pos)) {
-            return false;
-        }
-
         BlockMeta previewBlock = getPreviewBlock(allowed);
-
-        if (previewBlock == null) {
-            return false;
-        }
-
-        world.setBlockState(
-                pos,
-                LibVulpesBlocks.blockPhantom.getStateFromMeta(previewBlock.getMeta()),
-                3
-        );
+        if (previewBlock == null) {return false;}
+        if (!world.setBlockState(pos,
+                LibVulpesBlocks.blockPhantom.getStateFromMeta(previewBlock.getMeta()), 3
+        )) {return false;}
 
         TileEntity newTile = world.getTileEntity(pos);
-
-        if (newTile instanceof TilePlaceholder) {
-            ((TileSchematic) newTile).setReplacedBlock(allowed);
-            ((TilePlaceholder) newTile).setReplacedTileEntity(
-                    previewBlock.getBlock().createTileEntity(
-                            world,
-                            previewBlock.getBlock().getDefaultState()
-                    )
-            );
+        if (!(newTile instanceof TileSchematic)) {world.setBlockToAir(pos);
+            return false;
         }
 
+        TileSchematic schematic = (TileSchematic) newTile;
+        schematic.setReplacedBlock(allowed);
+        schematic.setReplacedTileEntity(previewBlock.getBlock().createTileEntity(world,
+                        previewBlock.getBlock().getDefaultState())
+        );
         return true;
     }
 

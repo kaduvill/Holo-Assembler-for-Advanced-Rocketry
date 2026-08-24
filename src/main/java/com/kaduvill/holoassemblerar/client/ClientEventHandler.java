@@ -128,7 +128,6 @@ public final class ClientEventHandler {
 
         EntityPlayer player = mc.player;
         ItemStack stack = player.getHeldItem(EnumHand.MAIN_HAND);
-
         List<AxisAlignedBB> boxes = ItemHoloAssembler.getClientPreviewBoxes(mc.world, player, stack);
 
         if (boxes.isEmpty()) {
@@ -146,42 +145,43 @@ public final class ClientEventHandler {
         double viewY = view.lastTickPosY + (view.posY - view.lastTickPosY) * partialTicks;
         double viewZ = view.lastTickPosZ + (view.posZ - view.lastTickPosZ) * partialTicks;
 
-        GlStateManager.pushMatrix();
         GlStateManager.disableTexture2D();
         GlStateManager.disableLighting();
         GlStateManager.disableDepth();
         GlStateManager.depthMask(false);
         GlStateManager.glLineWidth(2.5F);
 
-        Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buffer = tessellator.getBuffer();
+        try {
+            Tessellator tessellator = Tessellator.getInstance();
+            BufferBuilder buffer = tessellator.getBuffer();
 
-        buffer.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
+            buffer.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
 
-        for (AxisAlignedBB box : boxes) {
-            drawRedFrame(
-                    buffer,
-                    box.grow(0.002D).offset(-viewX, -viewY, -viewZ)
-            );
+            for (AxisAlignedBB box : boxes) {
+                drawRedFrame(buffer, box, viewX, viewY, viewZ);
+            }
+
+            tessellator.draw();
+        } finally {
+            GlStateManager.glLineWidth(1.0F);
+            GlStateManager.depthMask(true);
+            GlStateManager.enableDepth();
+            GlStateManager.disableLighting();
+            GlStateManager.enableTexture2D();
         }
-
-        tessellator.draw();
-
-        GlStateManager.glLineWidth(1.0F);
-        GlStateManager.depthMask(true);
-        GlStateManager.enableDepth();
-        GlStateManager.enableLighting();
-        GlStateManager.enableTexture2D();
-        GlStateManager.popMatrix();
     }
 
-    private static void drawRedFrame(BufferBuilder buffer, AxisAlignedBB box) {
-        double minX = box.minX;
-        double minY = box.minY;
-        double minZ = box.minZ;
-        double maxX = box.maxX;
-        double maxY = box.maxY;
-        double maxZ = box.maxZ;
+    private static void drawRedFrame(BufferBuilder buffer,
+                                     AxisAlignedBB box,
+                                     double viewX,
+                                     double viewY,
+                                     double viewZ) {
+        double minX = box.minX - 0.002D - viewX;
+        double minY = box.minY - 0.002D - viewY;
+        double minZ = box.minZ - 0.002D - viewZ;
+        double maxX = box.maxX + 0.002D - viewX;
+        double maxY = box.maxY + 0.002D - viewY;
+        double maxZ = box.maxZ + 0.002D - viewZ;
 
         addLine(buffer, minX, minY, minZ, maxX, minY, minZ);
         addLine(buffer, maxX, minY, minZ, maxX, minY, maxZ);
@@ -206,7 +206,7 @@ public final class ClientEventHandler {
                                 double x2,
                                 double y2,
                                 double z2) {
-        buffer.pos(x1, y1, z1).color(1.0F, 0.0F, 0.0F, 0.85F).endVertex();
-        buffer.pos(x2, y2, z2).color(1.0F, 0.0F, 0.0F, 0.85F).endVertex();
+        buffer.pos(x1, y1, z1).color(1.0F, 0.0F, 0.0F, 1.0F).endVertex();
+        buffer.pos(x2, y2, z2).color(1.0F, 0.0F, 0.0F, 1.0F).endVertex();
     }
 }
